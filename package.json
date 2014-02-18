@@ -11,5 +11,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "WTFPL"
+  "license": "WTFPL",
+  "preferGlobal": "true",
+  "bin": {
+    "swank" : "swank.js"
+  }
 }

@@ -1,14 +1,21 @@
+#! /usr/bin/env node
 var path = require('path');
 var connect = require('connect');
 
-//console.log( process.argv );
-var dir = path.resolve(process.argv[2] || '') || __dirname;
-var port = 8000;        //process.argv[3] || 8000;
+if(    process.argv[2] == "help"
+    || process.argv[2] == "usage" ){
+        console.log("Usage: swank [[root_directory]] [[port]]");
+        return;  
+}
 
-console.log("Hosting " + dir + "on port: " + port);
-console.warn("http://localhost:"+port);
+var dir = path.resolve(process.argv[2] || '') || __dirname;
+var port = process.argv[3] || 8000;
+
+//console.log("Hosting " + dir + "on port: " + port);
+console.log("\n>  http://"+(require('os').hostname()||"localhost")+":"+port+"\n\n");
 
 connect.logger();
 connect.createServer(
+    connect.logger(),
     connect.static( dir )
 ).listen( port );
