@@ -15,6 +15,7 @@ for(var i=1; i<process.argv.length;i++){
         try{
             ngrok = require('ngrok');
         }catch(err){
+            console.log("WARNING: ngrok is optional and not installed automatically. Run `npm install ngrok` to use this feature.");
             ngrok = null;
         }
     }else if(arg.match(/^--port=[0-9]+/)){
@@ -24,9 +25,6 @@ for(var i=1; i<process.argv.length;i++){
     }
 }
 dir = path.resolve(dir) || __dirname;
-
-console.log(port);
-console.log(dir);
 
 if( ngrok ){
     ngrok.connect({port: port}, function(err, url){
