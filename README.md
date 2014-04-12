@@ -10,8 +10,14 @@ Install
 
 Depends on connect.
 
+ngrok
+-----
+
+`swank` now has optional [ngrok](https://www.npmjs.org/package/ngrok) support. Just use the `--ngrok` flag
+to expose your local machine to the wider internet.
+
 Usage
 -----
-    swank [[root_directory]] [[port]]
+    swank [[--ngrok]] [[--port=PORT]] [[root_directory]]
 
 Defaults to using current working directory and port 8000.

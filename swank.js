@@ -2,7 +2,7 @@
 var path = require('path');
 var connect = require('connect');
 
-var dir = '';
+var dir = '.';
 var port = 8000;
 var ngrok;
 
