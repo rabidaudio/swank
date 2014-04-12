@@ -1,6 +1,6 @@
 {
   "name": "swank",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Host static files in the current directory with one command.",
   "main": "swank.js",
   "dependencies": {
@@ -11,10 +11,28 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "charles@rabidaudio.com",
   "license": "WTFPL",
   "preferGlobal": "true",
   "bin": {
     "swank": "swank.js"
-  }
+  },
+  "optionalDependencies": {
+    "ngrok": "^0.1.92"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rabidaudio/swank.git"
+  },
+  "keywords": [
+    "webserver",
+    "static",
+    "webserver",
+    "ngrok",
+    "tunnel"
+  ],
+  "bugs": {
+    "url": "https://github.com/rabidaudio/swank/issues"
+  },
+  "homepage": "https://github.com/rabidaudio/swank"
 }
