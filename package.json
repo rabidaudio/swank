@@ -1,10 +1,11 @@
 {
   "name": "swank",
-  "version": "0.0.0",
+  "version": "0.0.5",
   "description": "Host static files in the current directory with one command.",
   "main": "swank.js",
   "dependencies": {
-    "connect": "~2.13.0"
+    "connect": "~2.13.0",
+    "ngrok": "^0.1.92"
   },
   "devDependencies": {},
   "scripts": {
@@ -14,6 +15,6 @@
   "license": "WTFPL",
   "preferGlobal": "true",
   "bin": {
-    "swank" : "swank.js"
+    "swank": "swank.js"
   }
 }
