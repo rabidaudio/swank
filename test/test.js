@@ -2,7 +2,7 @@ var expect = require('chai').expect;
 
 var child_process = require('child_process');
 var http = require('http');
-var jsdom = require("jsdom");
+var https = require('https');
 
 
 describe('Swank', function(){
@@ -19,16 +19,16 @@ describe('Swank', function(){
   describe('file serve', function(){
 
     it('should serve files in the given directory', function(done){
-      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000', done, function(res, $, window){
+      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000', done, function(res){
 
         expect(res.statusCode).to.equal(200);
-        expect($('body').text()).to.contain('Hello, World');
+        expect(res.body).to.contain('Hello, World');
 
       });
     });
 
     it('should not serve files not in the given directory', function(done){
-      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000/nonsense.html', done, function(res, $, window){
+      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000/nonsense.html', done, function(res){
 
         expect(res.statusCode).to.equal(404);
 
@@ -36,7 +36,7 @@ describe('Swank', function(){
     });
 
     it('should serve files with the correct content type', function(done){
-      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000/peppers.png', done, function(res, $, window){
+      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000/peppers.png', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         var content_type = res.headers['content-type'];
@@ -46,19 +46,19 @@ describe('Swank', function(){
     });
 
     it('should serve files in the current directory by default', function(done){
-      run_and_open('./swank.js',[], null, 'http://localhost:8000/test/public', done, function(res, $, window){
+      run_and_open('./swank.js',[], null, 'http://localhost:8000/test/public', done, function(res){
 
         expect(res.statusCode).to.equal(200);
-        expect($('body').text()).to.contain('Hello, World');
+        expect(res.body).to.contain('Hello, World');
 
       });
     });
 
     it('should allow user-specified port', function(done){
-      run_and_open('./swank.js',[ '--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res, $, window){
+      run_and_open('./swank.js',[ '--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res){
 
         expect(res.statusCode).to.equal(200);
-        expect($('body').text()).to.contain('Hello, World');
+        expect(res.body).to.contain('Hello, World');
 
       });
     });
@@ -69,10 +69,10 @@ describe('Swank', function(){
 
     it('should use PORT environment variable if available', function(done){
       var opts = {env: {'PORT':'1234'}};
-      run_and_open('./swank.js',['test/public'], opts, 'http://localhost:1234', done, function(res, $, window){
+      run_and_open('./swank.js',['test/public'], opts, 'http://localhost:1234', done, function(res){
 
         expect(res.statusCode).to.equal(200);
-        expect($('body').text()).to.contain('Hello, World');
+        expect(res.body).to.contain('Hello, World');
 
       });
     });
@@ -88,17 +88,20 @@ describe('Swank', function(){
     });
 
     it('should allow ngrok tunnelling', function(mocha_done){
-      run('./swank.js', ['--ngrok', 'test/public'], null, function(data, child_done){
+
+
+      run('./swank.js', ['--ngrok', 'test/public/'], null, function(data, child_done){
 
         expect(data).not.to.equal(undefined);
-        var url = data.toString().trim().replace(/>\s+/,'').replace('https', 'http'); //url of ngrok server
-
+        var url = data.toString().trim().replace(/>\s+/,''); //url of ngrok server
         expect(url).to.contain('ngrok.com');
 
-        open(url, function(res, $, window){
+        open(url, function(res){
+          console.log(url);
+          console.log(res.body);
 
           expect(res.statusCode).to.equal(200);
-          expect($('body').text()).to.contain('Hello, World');
+          expect(res.body).to.contain('Hello, World');
 
           child_done();
           mocha_done();  
@@ -131,17 +134,11 @@ function run(command, args, opts, callback){
 }
 
 function open(url, callback){
-  http.get(url, function(res){
-    if(res.statusCode >= 400){
-      callback(res, undefined, undefined);
-    }else{
-      res.on('data', function(body){
-        jsdom.env(body.toString(), ["http://code.jquery.com/jquery.js"], function(errors, window){
-          if(errors) throw errors;
-          callback(res, window.jQuery, window);
-        });
-      });
-    }
+  (url.match(/https/) ? https : http).get(url, function(res){
+    res.once('data', function(body){
+      res.body = body.toString();
+      callback(res);
+    });
   }).end();
 }
 

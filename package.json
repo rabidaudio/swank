@@ -9,11 +9,10 @@
   },
   "devDependencies": {
     "chai": "^2.0.0",
-    "jsdom": "^3.1.2",
     "mocha": "^2.1.0"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha -t 20000 test/test.js"
+    "test": "node_modules/.bin/mocha test/test.js"
   },
   "author": "charles@rabidaudio.com",
   "license": "WTFPL",
