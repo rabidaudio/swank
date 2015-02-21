@@ -1,6 +1,6 @@
 {
   "name": "swank",
-  "version": "0.0.7",
+  "version": "1.0.0",
   "description": "Host static files in the current directory with one command.",
   "main": "swank.js",
   "dependencies": {
@@ -21,7 +21,7 @@
     "test": "node_modules/.bin/mocha test/test.js"
   },
   "author": "charles@rabidaudio.com",
-  "license": "WTFPL",
+  "license": "MIT",
   "preferGlobal": "true",
   "bin": {
     "swank": "./bin/swank"
