@@ -15,7 +15,7 @@ describe('Swank', function(){
   describe('file serve', function(){
 
     it('should serve files in the given directory', function(done){
-      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000', done, function(res){
+      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -24,7 +24,7 @@ describe('Swank', function(){
     });
 
     it('should not serve files not in the given directory', function(done){
-      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000/nonsense.html', done, function(res){
+      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000/nonsense.html', done, function(res){
 
         expect(res.statusCode).to.equal(404);
 
@@ -32,7 +32,7 @@ describe('Swank', function(){
     });
 
     it('should serve files with the correct content type', function(done){
-      run_and_open('./swank.js',['test/public'], null, 'http://localhost:8000/peppers.png', done, function(res){
+      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000/peppers.png', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         var content_type = res.headers['content-type'];
@@ -42,7 +42,7 @@ describe('Swank', function(){
     });
 
     it('should serve files in the current directory by default', function(done){
-      run_and_open('./swank.js',[], null, 'http://localhost:8000/test/public', done, function(res){
+      run_and_open('bin/swank',[], null, 'http://localhost:8000/test/public', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -51,7 +51,7 @@ describe('Swank', function(){
     });
 
     it('should allow user-specified port', function(done){
-      run_and_open('./swank.js',['--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res){
+      run_and_open('bin/swank',['--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -66,7 +66,7 @@ describe('Swank', function(){
     it('should use PORT environment variable if available', function(done){
       var env = Object.create( process.env );
       env.PORT = '1234';
-      run_and_open('./swank.js', ['test/public'], {env: env}, 'http://localhost:1234', done, function(res){
+      run_and_open('bin/swank', ['test/public'], {env: env}, 'http://localhost:1234', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -75,7 +75,7 @@ describe('Swank', function(){
     });
 
     it('should display a help message', function(mocha_done){
-      run('./swank.js', ['--help'], null, function(data, child_done){
+      run('bin/swank', ['--help'], null, function(data, child_done){
 
         expect(data.toString()).to.contain('Usage: ');
 
@@ -88,7 +88,7 @@ describe('Swank', function(){
 
     //   this.timeout(10*1000);
 
-    //   run('./swank.js', ['--ngrok', 'test/public/'], null, function(data, child_done){
+    //   run('bin/swank', ['--ngrok', 'test/public/'], null, function(data, child_done){
 
     //     expect(data).not.to.equal(undefined);
     //     var url = data.toString().trim().replace(/>\s+/,''); //url of ngrok server
@@ -104,11 +104,31 @@ describe('Swank', function(){
     //         child_done();
     //         mocha_done();  
     //       });
-          
+
     //     }, 5000);
     //   });
     // });
 
+  });
+
+  describe('modular', function(){
+    it('should be usable as a module as well', function(done){
+
+      var serve = require('../swank.js');
+      serve({
+        path: 'test/public',
+        port: 1234
+      }, function(err, warn, url){
+        expect(err).not.to.exist;
+        expect(warn).not.to.exist;
+        open(url, function(res){
+          expect(res.statusCode).to.equal(200);
+          expect(res.body).to.contain('Hello, World');
+          done();
+        });
+      });
+
+    });
   });
 });
 

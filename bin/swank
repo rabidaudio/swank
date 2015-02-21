@@ -1,0 +1,3 @@
+#! /usr/bin/env node
+
+require('../swank.js').process_args();

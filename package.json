@@ -21,7 +21,7 @@
   "license": "WTFPL",
   "preferGlobal": "true",
   "bin": {
-    "swank": "swank.js"
+    "swank": "./bin/swank"
   },
   "optionalDependencies": {
     "ngrok": "^0.1.92"
