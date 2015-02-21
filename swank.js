@@ -1,7 +1,10 @@
 #! /usr/bin/env node
 var path = require('path');
 var os = require('os');
+var http = require('http');
 var connect = require('connect');
+var serveStatic = require('serve-static');
+var morgan = require('morgan');
 var nopt = require('nopt');
 var colors = require('colors');
 
@@ -22,6 +25,10 @@ var shortHands = {
     "w": "--watch",
     "usage": "--help"
 };
+
+// function usage(){
+    
+// }
 
 var opts = nopt(knownOpts, shortHands);
 
@@ -50,7 +57,6 @@ var serve = function(opts){
 
     var dir = opts.path || __dirname; //default to CWD
     var port = opts.port || process.env.PORT || 8000;
-    console.log(port);
     var host = "http://"+(os.hostname()||"localhost");
 
     var ngrok = false;
@@ -63,7 +69,7 @@ var serve = function(opts){
         }
     }
 
-    start_server(host, port, dir);
+    start_server(host, port, dir, true);
 
     if(ngrok){
         ngrok.connect({port: port}, function(err, url){
@@ -77,12 +83,13 @@ var serve = function(opts){
     }
 };
 
-function start_server(host, port, dir){
-    connect.logger();
-    connect.createServer(
-        connect.logger(),
-        connect.static(dir)
-    ).listen(port);
+function start_server(host, port, dir, log){
+    var app = connect();
+    if(log){
+        app.use(morgan('combined'));
+    }
+    app.use(serveStatic(dir));
+    http.createServer(app).listen(port);
 }
 
 serve(opts);
