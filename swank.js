@@ -1,9 +1,13 @@
 var path        = require('path');
 var os          = require('os');
+var url         = require('url');
 var http        = require('http');
 var connect     = require('connect');
 var serveStatic = require('serve-static');
 var morgan      = require('morgan');
+var liveReload  = require('connect-livereload');
+var tinylr      = require('tiny-lr');
+var watch       = require('watch');
 var nopt        = require('nopt');
 var colors      = require('colors');
 
@@ -16,7 +20,9 @@ var serve = function(opts, callback){
             port: 8000,
             help: false,
             ngrok: false,
-            watch: false
+            watch: false,
+            log: true,
+            liveReload: {}
         }
 
     Returns a callback when the server is ready with two arguments
@@ -37,8 +43,10 @@ var serve = function(opts, callback){
     //defaults
     var dir  = opts.path || __dirname; //default to CWD
     var port = opts.port || process.env.PORT || 8000;
-    var host = "http://"+(os.hostname()||"localhost");
-    var log  = (opts.log === undefined ? true : opts.log);
+    var host = (os.hostname()||"localhost");
+    var log  = (opts.log === undefined ? (opts.console ? true : false) : opts.log);
+    var liveReloadOpts = opts.liveReload || {};
+    liveReloadOpts.port = liveReloadOpts.port || 35729;
 
     var ngrok = false;
     var warning = null;
@@ -55,6 +63,27 @@ var serve = function(opts, callback){
     if(log){
         app.use(morgan('combined'));
     }
+    if(opts.watch){
+        app.use(liveReload(liveReloadOpts));                    //inject script into pages
+        tinylr().listen(liveReloadOpts.port, function(){        //start respond server
+            watch.watchTree(dir, function(f, curr, prev) {      //when a file changes, cause a reload
+                if (typeof f == "object" && prev === null && curr === null) {
+                  // Finished walking the tree
+                } else {
+                    var liveReloadURL = url.format({
+                        protocol: 'http',
+                        hostname: host,
+                        port: liveReloadOpts.port,
+                        pathname: '/changed',
+                        query: {files: f}
+                    });
+                    console.log(liveReloadURL);
+                    http.get(liveReloadURL);
+                }
+            });
+        });
+
+    }
     app.use(serveStatic(dir));
     http.createServer(app).listen(port);
 
@@ -63,7 +92,11 @@ var serve = function(opts, callback){
             callback(err, warning, url);
         });
     }else{
-        callback(null, warning, host+":"+port);
+        callback(null, warning, url.format({
+            protocol: "http",
+            hostname: host,
+            port: port
+        }));
     }
 };
 

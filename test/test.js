@@ -42,7 +42,7 @@ describe('Swank', function(){
     });
 
     it('should serve files in the current directory by default', function(done){
-      run_and_open('bin/swank',[], null, 'http://localhost:8000/test/public', done, function(res){
+      run_and_open('bin/swank', null, null, 'http://localhost:8000/test/public', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -128,6 +128,22 @@ describe('Swank', function(){
         });
       });
 
+    });
+  });
+
+  describe('watch', function(){
+    it('should allow live-reload for changed files', function(done){
+      run_and_open('bin/swank', ['--watch', '--path', 'test/public'], null, {url: 'http://localhost:8000',
+              headers: {'accept': 'text/html'}}, done, function(res){
+
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.contain('livereload.js'); //script should be inserted
+
+        request('http://localhost:35729', function(res, body){
+          expect(res.statusCode).to.equal(200); //livereload server should be running
+        });
+
+      });
     });
   });
 });

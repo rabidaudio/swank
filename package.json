@@ -4,10 +4,13 @@
   "description": "Host static files in the current directory with one command.",
   "main": "swank.js",
   "dependencies": {
-    "connect": "~2.13.0",
+    "connect": "~3.3.4",
+    "connect-livereload": "^0.5.3",
     "morgan": "^1.5.1",
     "ngrok": "^0.1.92",
-    "serve-static": "^1.9.1"
+    "serve-static": "^1.9.1",
+    "tiny-lr": "^0.1.5",
+    "watch": "^0.14.0"
   },
   "devDependencies": {
     "chai": "^2.0.0",
