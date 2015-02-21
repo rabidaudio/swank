@@ -38,7 +38,15 @@ var serve = function(opts, callback){
 
   //start by returning usage info if requested
   if(opts.help && opts.console){
-    console.log('Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--no-log]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]');
+    console.log(
+      'Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--no-log]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]\n\n'+
+      '--ngrok: pipe your server through [ngrok\'s](https://www.npmjs.org/package/ngrok) local tunnel\n'+
+      '--watch: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your'+
+        'directory, causing a reload when files change\n'+
+      '--no-log: disable logging of requests\n'+
+      '--port: specify the local port to use. Defaults to $PORT or 8000\n'+
+      '--path: the path to the root directory of the server. Defaults to the current working directory\n\n'
+    );
     return;
   }
 
@@ -132,11 +140,11 @@ serve.process_args = function (){
   }
   serve(opts, function(error, warning, url){
     if(error){
-      console.log('ERROR: '+error.red);
+      console.log(('ERROR: '+error).red);
     }else if(warning){
-      console.log('WARNING: '+warning.yellow);
+      console.log(('WARNING: '+warning).yellow);
     }else{
-      console.log('\n>  '+url+'\n\n'.green);
+      console.log(('\n>  '+url+'\n\n').green);
     }
   });
 };
