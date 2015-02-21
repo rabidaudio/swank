@@ -87,6 +87,9 @@ var serve = function(opts, callback){
             pathname: '/changed',
             query: {files: f}
           });
+          if(log){
+            console.log(("File changed: "+f).blue);
+          }
           http.get(liveReloadURL);
         }
       });
