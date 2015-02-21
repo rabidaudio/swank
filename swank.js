@@ -22,6 +22,7 @@ var serve = function(opts, callback){
     Returns a callback when the server is ready with two arguments
         function(error, warning, url)
 */
+
     opts = opts || {};
     if(typeof callback != 'function'){
         callback = new Function(); // no-op
@@ -29,13 +30,15 @@ var serve = function(opts, callback){
 
     //start by returning usage info if requested
     if(opts.help && opts.console){
-        console.log("Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]");
+        console.log("Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--no-log]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]");
         return;
     }
 
-    var dir = opts.path || __dirname; //default to CWD
+    //defaults
+    var dir  = opts.path || __dirname; //default to CWD
     var port = opts.port || process.env.PORT || 8000;
     var host = "http://"+(os.hostname()||"localhost");
+    var log  = (opts.log === undefined ? true : opts.log);
 
     var ngrok = false;
     var warning = null;
@@ -44,13 +47,12 @@ var serve = function(opts, callback){
             ngrok = require('ngrok');
         }catch(err){
             warning = "ngrok is optional and not installed automatically. Run `npm install ngrok` to use this feature.";
-            ngrok = false;
         }
     }
 
     //start server
     var app = connect();
-    if(true){
+    if(log){
         app.use(morgan('combined'));
     }
     app.use(serveStatic(dir));
@@ -72,6 +74,7 @@ serve.process_args = function(){
         "port"  : Number,
         "path"  : path,
         "help"  : Boolean,
+        "log"   : Boolean,
         "ngrok" : Boolean,
         "watch" : Boolean
     };
@@ -80,6 +83,7 @@ serve.process_args = function(){
         "p": "--port",
         "d": "--path",
         "h": "--help",
+        "l": "--log",
         "n": "--ngrok",
         "w": "--watch",
         "usage": "--help"
