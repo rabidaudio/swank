@@ -1,8 +1,7 @@
 var expect = require('chai').expect;
 
 var child_process = require('child_process');
-var http = require('http');
-var https = require('https');
+var request = require('request');
 
 
 describe('Swank', function(){
@@ -78,7 +77,7 @@ describe('Swank', function(){
     });
 
     it('should display a help message', function(mocha_done){
-      run('./swank.js', ['help'], null, function(data, child_done){
+      run('./swank.js', ['--help'], null, function(data, child_done){
 
         expect(data.toString()).to.contain('Usage: ');
 
@@ -87,28 +86,27 @@ describe('Swank', function(){
       });
     });
 
-    it('should allow ngrok tunnelling', function(mocha_done){
+    // it('should allow ngrok tunnelling', function(mocha_done){
 
+    //   run('./swank.js', ['--ngrok', 'test/public/'], null, function(data, child_done){
 
-      run('./swank.js', ['--ngrok', 'test/public/'], null, function(data, child_done){
+    //     expect(data).not.to.equal(undefined);
+    //     var url = data.toString().trim().replace(/>\s+/,''); //url of ngrok server
+    //     expect(url).to.contain('ngrok.com');
 
-        expect(data).not.to.equal(undefined);
-        var url = data.toString().trim().replace(/>\s+/,''); //url of ngrok server
-        expect(url).to.contain('ngrok.com');
+    //     open(url, function(res){
+    //       console.log(url);
+    //       console.log(res.body);
 
-        open(url, function(res){
-          console.log(url);
-          console.log(res.body);
+    //       expect(res.statusCode).to.equal(200);
+    //       expect(res.body).to.contain('Hello, World');
 
-          expect(res.statusCode).to.equal(200);
-          expect(res.body).to.contain('Hello, World');
+    //       child_done();
+    //       mocha_done();  
+    //     });
+    //   });
+    // });
 
-          child_done();
-          mocha_done();  
-        });
-      });
-
-    });
   });
 });
 
@@ -134,11 +132,12 @@ function run(command, args, opts, callback){
 }
 
 function open(url, callback){
-  (url.match(/https/) ? https : http).get(url, function(res){
-    res.once('data', function(body){
-      res.body = body.toString();
-      callback(res);
-    });
+  request(url, function(error, res, body){
+    if(error){
+      throw error;
+    }
+    res.body = body;
+    callback(res);
   }).end();
 }
 
