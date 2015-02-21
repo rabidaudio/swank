@@ -1,6 +1,6 @@
 {
   "name": "swank",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Host static files in the current directory with one command.",
   "main": "swank.js",
   "dependencies": {
