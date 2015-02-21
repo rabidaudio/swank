@@ -76,7 +76,7 @@ var serve = function(opts){
             if(err){
                 return console.log(err.red);
             }
-            console.log("\n>  "+url+":"+port+"\n\n".green);
+            console.log("\n>  "+url+"\n\n".green);
         });
     }else{
         console.log("\n>  "+host+":"+port+"\n\n".green);

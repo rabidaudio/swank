@@ -3,15 +3,12 @@ var expect = require('chai').expect;
 var child_process = require('child_process');
 var request = require('request');
 
-
 describe('Swank', function(){
 
   after(function(){
     //Failures can leave some servers still running, so kill any existing processes
     procs.forEach(function(proc){
-      // if(proc.){
         proc.kill('SIGHUP');
-      // }
     });
   });
 
@@ -54,7 +51,7 @@ describe('Swank', function(){
     });
 
     it('should allow user-specified port', function(done){
-      run_and_open('./swank.js',[ '--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res){
+      run_and_open('./swank.js',['--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -67,8 +64,9 @@ describe('Swank', function(){
   describe('arguments', function(){
 
     it('should use PORT environment variable if available', function(done){
-      var opts = {env: {'PORT':'1234'}};
-      run_and_open('./swank.js',['test/public'], opts, 'http://localhost:1234', done, function(res){
+      var env = Object.create( process.env );
+      env.PORT = '1234';
+      run_and_open('./swank.js', ['test/public'], {env: env}, 'http://localhost:1234', done, function(res){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
@@ -88,22 +86,26 @@ describe('Swank', function(){
 
     // it('should allow ngrok tunnelling', function(mocha_done){
 
+    //   this.timeout(10*1000);
+
     //   run('./swank.js', ['--ngrok', 'test/public/'], null, function(data, child_done){
 
     //     expect(data).not.to.equal(undefined);
     //     var url = data.toString().trim().replace(/>\s+/,''); //url of ngrok server
     //     expect(url).to.contain('ngrok.com');
 
-    //     open(url, function(res){
-    //       console.log(url);
-    //       console.log(res.body);
+    //     setTimeout(function(){ //give ngrok time to start
 
-    //       expect(res.statusCode).to.equal(200);
-    //       expect(res.body).to.contain('Hello, World');
+    //       open(url.replace('https', 'http'), function(res){
 
-    //       child_done();
-    //       mocha_done();  
-    //     });
+    //         expect(res.statusCode).to.equal(200);
+    //         expect(res.body).to.contain('Hello, World');
+
+    //         child_done();
+    //         mocha_done();  
+    //       });
+          
+    //     }, 5000);
     //   });
     // });
 
@@ -121,21 +123,17 @@ describe('Swank', function(){
 var procs = [];
 
 function run(command, args, opts, callback){
-  var proc = child_process.spawn(command, args, opts||{});
+  var proc = child_process.spawn(command, args, opts);
   procs.push(proc);
   proc.stdout.once('data', function (data) {
-    var done = function(){
-      proc.kill('SIGHUP');
-    };
+    var done = function(){ proc.kill('SIGHUP'); };
     callback(data, done);
   });
 }
 
 function open(url, callback){
   request(url, function(error, res, body){
-    if(error){
-      throw error;
-    }
+    if(error){ throw error; }
     res.body = body;
     callback(res);
   }).end();
