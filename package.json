@@ -38,9 +38,12 @@
   "keywords": [
     "webserver",
     "static",
-    "webserver",
+    "server",
     "ngrok",
-    "tunnel"
+    "tunnel",
+    "watch",
+    "livereload",
+    "live-reload"
   ],
   "bugs": {
     "url": "https://github.com/rabidaudio/swank/issues"
