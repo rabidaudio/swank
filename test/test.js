@@ -15,46 +15,51 @@ describe('Swank', function(){
   describe('file serve', function(){
 
     it('should serve files in the given directory', function(done){
-      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000', done, function(res){
+      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000', done, function(res, done){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
+        done();
 
       });
     });
 
     it('should not serve files not in the given directory', function(done){
-      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000/nonsense.html', done, function(res){
+      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000/nonsense.html', done, function(res, done){
 
         expect(res.statusCode).to.equal(404);
+        done();
 
       });
     });
 
     it('should serve files with the correct content type', function(done){
-      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000/peppers.png', done, function(res){
+      run_and_open('bin/swank',['test/public'], null, 'http://localhost:8000/peppers.png', done, function(res, done){
 
         expect(res.statusCode).to.equal(200);
         var content_type = res.headers['content-type'];
         expect(content_type).to.equal('image/png');
+        done();
 
       });
     });
 
     it('should serve files in the current directory by default', function(done){
-      run_and_open('bin/swank', null, null, 'http://localhost:8000/test/public', done, function(res){
+      run_and_open('bin/swank', null, null, 'http://localhost:8000/test/public', done, function(res, done){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
+        done();
 
       });
     });
 
     it('should allow user-specified port', function(done){
-      run_and_open('bin/swank',['--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res){
+      run_and_open('bin/swank',['--port=1234', 'test/public'], null, 'http://localhost:1234', done, function(res, done){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
+        done();
 
       });
     });
@@ -66,10 +71,11 @@ describe('Swank', function(){
     it('should use PORT environment variable if available', function(done){
       var env = Object.create( process.env );
       env.PORT = '1234';
-      run_and_open('bin/swank', ['test/public'], {env: env}, 'http://localhost:1234', done, function(res){
+      run_and_open('bin/swank', ['test/public'], {env: env}, 'http://localhost:1234', done, function(res, done){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
+        done();
 
       });
     });
@@ -132,15 +138,17 @@ describe('Swank', function(){
   });
 
   describe('watch', function(){
-    it('should allow live-reload for changed files', function(done){
+    it('should allow live-reload for changed files', function(mocha_done){
+      this.timeout(5000);
       run_and_open('bin/swank', ['--watch', '--path', 'test/public'], null, {url: 'http://localhost:8000',
-              headers: {'accept': 'text/html'}}, done, function(res){
+              headers: {'accept': 'text/html'}}, mocha_done, function(res, done){
 
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('livereload.js'); //script should be inserted
 
-        request('http://localhost:35729', function(res, body){
+        open('http://localhost:35729', function(res){
           expect(res.statusCode).to.equal(200); //livereload server should be running
+          done();
         });
 
       });
@@ -177,10 +185,11 @@ function open(url, callback){
 
 function run_and_open(command, args, opts, url, mocha_done, callback){
   run(command, args, opts, function(data, child_done){
-    open(url, function(j,w){
-      callback(j,w);
-      child_done();
-      mocha_done();
+    open(url, function(res){
+      callback(res, function(){
+        child_done();
+        if(mocha_done) mocha_done();
+      });
     });
   });
 }
