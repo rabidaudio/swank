@@ -1,6 +1,8 @@
 swank
 =====
 
+![build-status](https://travis-ci.org/rabidaudio/swank.svg?branch=master)
+
 The stupid simple static webserver. If you want to test local static
 files (HTML, JS, CSS), simply run `swank`. It's even got livereload
 and introspected tunnels built in.
