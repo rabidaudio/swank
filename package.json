@@ -7,9 +7,13 @@
     "connect": "~2.13.0",
     "ngrok": "^0.1.92"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "chai": "^2.0.0",
+    "jsdom": "^3.1.2",
+    "mocha": "^2.1.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node_modules/.bin/mocha -t 20000 test/test.js"
   },
   "author": "charles@rabidaudio.com",
   "license": "WTFPL",
