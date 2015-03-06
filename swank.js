@@ -131,6 +131,8 @@ serve.process_args = function (){
     'l': '--log',
     'n': '--ngrok',
     'w': '--watch',
+    's': '--no-log',
+    'silent': '--no-log'
     'usage': '--help'
   };
 
