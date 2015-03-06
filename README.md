@@ -7,9 +7,8 @@ swank
 
 #### It's `python -m SimpleHTTPServer` for Javascript, with a few extras.
 
-The stupid simple static webserver. If you want to test local static
-files (HTML, JS, CSS), simply run `swank`. It's even got livereload
-and introspected tunnels built in.
+If you want to test local static files (HTML, JS, CSS), simply run `swank`.
+It's even got livereload and introspected tunnels built in.
 
 Install
 -------
@@ -17,15 +16,13 @@ Install
 
 Usage
 -----
+    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent | -s]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
 
-    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
-
-    --ngrok: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
-    --watch: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your
-      directory, causing a reload when files change
-    --silent: disable logging of requests
-    --port: specify the local port to use. Defaults to $PORT or 8000
-    --path: the path to the root directory of the server. Defaults to the current working directory
+- `--ngrok`: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
+- `--watch`: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
+- `--silent`: disable logging of requests
+- `--port`: specify the local port to use. Defaults to `$PORT` or `8000`
+- `--path`: the path to the root directory of the server. Defaults to the current working directory
 
 
 You can also use it as a module, if you can think of any reason to.
