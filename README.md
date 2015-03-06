@@ -18,12 +18,12 @@ Install
 Usage
 -----
 
-    swank [[--ngrok | -n]] [[--watch | -w]] [[--no-log]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
 
     --ngrok: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
     --watch: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your
       directory, causing a reload when files change
-    --no-log: disable logging of requests
+    --silent: disable logging of requests
     --port: specify the local port to use. Defaults to $PORT or 8000
     --path: the path to the root directory of the server. Defaults to the current working directory
 
