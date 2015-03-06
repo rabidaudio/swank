@@ -142,30 +142,23 @@ describe('Swank', function (){
      });
     });
 
-    // it('should allow ngrok tunnelling', function (mocha_done){
+    it('should allow ngrok tunnelling', function (mocha_done){
 
-    //   this.timeout(10*1000);
+      run('bin/swank', ['--ngrok', 'test/fixtures/'], null, function (data, child_done){
 
-    //   run('bin/swank', ['--ngrok', 'test/fixtures/'], null, function (data, child_done){
+        //url of ngrok server. implicit testing that url is valid
+        var url = data.toString().match(/https?:\/\/[a-z0-9]+.ngrok.com/)[0].replace('https', 'http');
 
-    //     expect(data).not.to.equal(undefined);
-    //     var url = data.toString().trim().replace(/>\s+/,''); //url of ngrok server
-    //     expect(url).to.contain('ngrok.com');
+        open(url, function (res){
+          expect(res.statusCode).to.equal(200);
+          expect(res.body).to.contain('Hello, World');
 
-    //     setTimeout(function (){ //give ngrok time to start
+          child_done();
+          mocha_done();  
+        });
 
-    //       open(url.replace('https', 'http'), function (res){
-
-    //         expect(res.statusCode).to.equal(200);
-    //         expect(res.body).to.contain('Hello, World');
-
-    //         child_done();
-    //         mocha_done();  
-    //       });
-
-    //     }, 5000);
-    //   });
-    // });
+      });
+    });
 
   });
 
