@@ -172,20 +172,38 @@ describe('Swank', function (){
  });
 
  describe('watch', function (){
+
+  var proc, stop_watching;
+
+  before(function(done){ //start watch server
+    run('bin/swank', ['--watch', '--path', 'test/fixtures'], null, function(data, run_done){
+      proc = data;
+      stop_watching = run_done;
+      done();
+    });
+  });
+
+
   it('should allow live-reload for changed files', function (mocha_done){
-   this.timeout(5000);
-   run_and_open('bin/swank', ['--watch', '--path', 'test/fixtures'], null, {url: 'http://localhost:8000',
-       headers: {'accept': 'text/html'}}, mocha_done, function (res, done){
+   open({url: 'http://localhost:8000', headers: {'accept': 'text/html'}}, function (res){
 
     expect(res.statusCode).to.equal(200);
     expect(res.body).to.contain('livereload.js'); //script should be inserted
 
     open('http://localhost:35729', function (res){
      expect(res.statusCode).to.equal(200); //livereload server should be running
-     done();
+     mocha_done();
     });
 
    });
+  });
+
+  // it('shouldn\'t crash when changing many files', function(){
+
+  // });
+
+  after(function(){
+    stop_watching();
   });
  });
 });
