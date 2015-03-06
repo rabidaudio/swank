@@ -76,6 +76,8 @@ var serve = function(opts, callback){
   if(opts.watch){
     app.use(liveReload(liveReloadOpts));                    //inject script into pages
     tinylr().listen(liveReloadOpts.port, function (){        //start respond server
+      var last_change_request = new Date();
+      var WATCH_TIMEOUT = 500;
       watch.watchTree(dir, function (f, curr, prev) {      //when a file changes, cause a reload
         if (typeof f === 'object' && prev === null && curr === null) {
          // Finished walking the tree
@@ -90,7 +92,11 @@ var serve = function(opts, callback){
           if(log){
             console.log(("File changed: "+f).blue);
           }
-          http.get(liveReloadURL);
+          var now = new Date();
+          if(now > last_change_request + WATCH_TIMEOUT){
+            http.get(liveReloadURL);
+            last_change_request = now;
+          }
         }
       });
     });

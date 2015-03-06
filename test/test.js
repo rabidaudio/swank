@@ -1,7 +1,10 @@
 var expect = require('chai').expect;
 
 var child_process = require('child_process');
-var request = require('request');
+var fs            = require('fs');
+var request       = require('request');
+var rmrf          = require('rimraf');
+
 
 /******************************************** HELPER METHODS **********************************************************/
 
@@ -186,11 +189,17 @@ describe('Swank', function (){
     });
   });
 
-  describe('watch', function (){
 
+  describe('watch', function (){
     var proc, stop_watching;
 
-    before(function (done){ //start watch server
+    //start watch server
+    before(function(done){
+      //make a bunch of files
+      fs.mkdirSync('test/fixtures/many');
+      for(var i = 0; i<100; i++){
+        fs.writeFileSync('test/fixtures/many/'+i+'.txt', '');
+      }
       run('bin/swank', ['--watch', '--path', 'test/fixtures'], null, function (data, run_done){
         proc = data;
         stop_watching = run_done;
@@ -198,26 +207,34 @@ describe('Swank', function (){
       });
     });
 
-
     it('should allow live-reload for changed files', function (mocha_done){
-     open({url: 'http://localhost:8000', headers: {'accept': 'text/html'}}, function (res){
+      open({url: 'http://localhost:8000', headers: {'accept': 'text/html'}}, function (res){
 
-      expect(res.statusCode).to.equal(200);
-      expect(res.body).to.contain('livereload.js'); //script should be inserted
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.contain('livereload.js'); //script should be inserted
 
-      open('http://localhost:35729', function (res){
-       expect(res.statusCode).to.equal(200); //livereload server should be running
-       mocha_done();
+        open('http://localhost:35729', function (res){
+          expect(res.statusCode).to.equal(200); //livereload server should be running
+          mocha_done();
+        });
+
       });
-
-     });
     });
 
-    // it('shouldn\'t crash when changing many files', function(){
+    it('shouldn\'t crash when changing many files', function (mocha_done){
+      this.timeout(8000);
+      rmrf.sync('test/fixtures/many');
+      setTimeout(function(){ //give the server a chance to die
+        open('http://localhost:35729', function (res){
+         expect(res.statusCode).to.equal(200); //livereload server should still be running
+         mocha_done();
+        });
+      }, 7000);
+    });
 
-    // });
-
+    //cleanup and stop watch server
     after(function (){
+      rmrf.sync('test/fixtures/many');
       stop_watching();
     });
   });
