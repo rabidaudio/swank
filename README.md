@@ -5,6 +5,8 @@ swank
 
 [![NPM](https://nodei.co/npm/swank.png?global=true&&downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/swank/)
 
+#### It's `python -m SimpleHTTPServer` for Javascript, with a few extras.
+
 The stupid simple static webserver. If you want to test local static
 files (HTML, JS, CSS), simply run `swank`. It's even got livereload
 and introspected tunnels built in.

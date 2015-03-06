@@ -39,6 +39,7 @@
     "webserver",
     "static",
     "server",
+    "SimpleHTTPServer",
     "ngrok",
     "tunnel",
     "watch",
