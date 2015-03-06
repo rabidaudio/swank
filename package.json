@@ -1,7 +1,7 @@
 {
   "name": "swank",
   "version": "1.1.0",
-  "description": "Host static files in the current directory with one command.",
+  "description": "Simple static server with livereload and tunneling options",
   "main": "swank.js",
   "dependencies": {
     "colors": "^1.0.3",

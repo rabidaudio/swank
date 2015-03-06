@@ -55,11 +55,13 @@ var serve = function(opts, callback){
   var port = opts.port || process.env.PORT || 8000;
   var host = (os.hostname()||'localhost');
   var log  = (opts.log === undefined ? (opts.console ? true : false) : opts.log);
+
   var liveReloadOpts = opts.liveReload || {};
   liveReloadOpts.port = liveReloadOpts.port || 35729;
 
   var ngrok = false;
   var warning = null;
+
   if(opts.ngrok){
     try{
       ngrok = require('ngrok');
@@ -70,14 +72,18 @@ var serve = function(opts, callback){
 
   //start server
   var app = connect();
+
   if(log){
     app.use(morgan('combined'));
   }
+
   if(opts.watch){
     app.use(liveReload(liveReloadOpts));                    //inject script into pages
+
     tinylr().listen(liveReloadOpts.port, function (){        //start respond server
       var last_change_request = new Date();
       var WATCH_TIMEOUT = 500;
+
       watch.watchTree(dir, function (f, curr, prev) {      //when a file changes, cause a reload
         if (typeof f === 'object' && prev === null && curr === null) {
          // Finished walking the tree
@@ -89,9 +95,11 @@ var serve = function(opts, callback){
             pathname: '/changed',
             query: {files: f}
           });
+
           if(log){
-            console.log(("File changed: "+f).blue);
+            console.log(('File changed: '+f).blue);
           }
+
           var now = new Date();
           if(now > last_change_request + WATCH_TIMEOUT){
             //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
@@ -101,8 +109,8 @@ var serve = function(opts, callback){
         }
       });
     });
-
   }
+
   app.use(serveStatic(dir));
   http.createServer(app).listen(port);
 
@@ -150,6 +158,7 @@ serve.process_args = function (){
   if(!opts.path && opts.argv.remain.length > 0){
     opts.path = path.resolve(opts.argv.remain.join(' '));
   }
+
   serve(opts, function(error, warning, url){
     if(error){
       console.log(('ERROR: '+error).red);
