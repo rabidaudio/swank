@@ -207,18 +207,23 @@ describe('Swank', function (){
       });
     });
 
-    it('should allow live-reload for changed files', function (mocha_done){
+    it('should insert livereload.js', function(mocha_done){
       open({url: 'http://localhost:8000', headers: {'accept': 'text/html'}}, function (res){
 
         expect(res.statusCode).to.equal(200);
-        expect(res.body).to.contain('livereload.js'); //script should be inserted
-
-        open('http://localhost:35729', function (res){
-          expect(res.statusCode).to.equal(200); //livereload server should be running
-          mocha_done();
-        });
+        expect(res.body).to.contain('livereload.js');
+        mocha_done();
 
       });
+    });
+
+    it('should be running a livereload server', function (mocha_done){
+
+      open('http://localhost:35729', function (res){
+        expect(res.statusCode).to.equal(200);
+        mocha_done();
+      });
+
     });
 
     it('shouldn\'t crash when changing many files', function (mocha_done){
@@ -226,8 +231,9 @@ describe('Swank', function (){
       rmrf.sync('test/fixtures/many');
       setTimeout(function(){ //give the server a chance to die
         open('http://localhost:35729', function (res){
-         expect(res.statusCode).to.equal(200); //livereload server should still be running
-         mocha_done();
+          //livereload server should still be running
+          expect(res.statusCode).to.equal(200);
+          mocha_done();
         });
       }, 7000);
     });
