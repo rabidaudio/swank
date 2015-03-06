@@ -94,6 +94,7 @@ var serve = function(opts, callback){
           }
           var now = new Date();
           if(now > last_change_request + WATCH_TIMEOUT){
+            //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
             http.get(liveReloadURL);
             last_change_request = now;
           }
