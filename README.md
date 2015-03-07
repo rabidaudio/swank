@@ -25,7 +25,7 @@ Usage
 - `--path`: the path to the root directory of the server. Defaults to the current working directory
 
 
-You can also use it as a module, if you can think of any reason to.
+You can also use it as a module.
 
 ```javascript
 var defaults = {
@@ -38,6 +38,25 @@ var defaults = {
   liveReload: {}
 };
 require('swank')(defaults);
+```
+
+For example, if you want to use it with [`gulp`](http://gulpjs.com):
+
+```javascript
+var gulp = require('gulp');
+var swank = require('swank');
+
+gulp.task('serve', function(cb){
+  swank({
+    watch: true,
+    path: 'dist'
+  }, function(err, warn, url){
+    console.log('Server running: '+url);
+    cb();
+  });
+});
+
+
 ```
 
 LICENSE
