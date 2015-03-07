@@ -81,7 +81,7 @@ var serve = function(opts, callback){
     app.use(liveReload(liveReloadOpts));                    //inject script into pages
 
     tinylr().listen(liveReloadOpts.port, function (){        //start respond server
-      var last_change_request = new Date();
+      var last_change_request = new Date().valueOf();
       var WATCH_TIMEOUT = 500;
 
       watch.watchTree(dir, function (f, curr, prev) {      //when a file changes, cause a reload
@@ -100,7 +100,7 @@ var serve = function(opts, callback){
             console.log(('File changed: '+f).blue);
           }
 
-          var now = new Date();
+          var now = new Date().valueOf();
           if(now > last_change_request + WATCH_TIMEOUT){
             //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
             http.get(liveReloadURL);
