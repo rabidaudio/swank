@@ -43,6 +43,7 @@ var serve = function(opts, callback){
       '--ngrok: pipe your server through [ngrok\'s](https://www.npmjs.org/package/ngrok) local tunnel\n'+
       '--watch: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your'+
         'directory, causing a reload when files change\n'+
+      '--interval: watch interval. Defaults to 1s\n'+
       '--silent: disable logging of requests\n'+
       '--port: specify the local port to use. Defaults to $PORT or 8000\n'+
       '--path: the path to the root directory of the server. Defaults to the current working directory\n\n'
@@ -57,6 +58,7 @@ var serve = function(opts, callback){
   var log  = (opts.log === undefined ? (opts.console ? true : false) : opts.log);
 
   var liveReloadOpts = opts.liveReload || {};
+  var interval = opts.interval || 1000;
   liveReloadOpts.port = liveReloadOpts.port || 35729;
 
   var ngrok = false;
@@ -84,7 +86,7 @@ var serve = function(opts, callback){
       var last_change_request = new Date().valueOf();
       var WATCH_TIMEOUT = 500;
 
-      watch.watchTree(dir, function (f, curr, prev) {      //when a file changes, cause a reload
+      watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {      //when a file changes, cause a reload
         if (typeof f === 'object' && prev === null && curr === null) {
          // Finished walking the tree
         } else {
@@ -131,12 +133,13 @@ var serve = function(opts, callback){
 // run with command line arguments
 serve.process_args = function (){
   var knownOpts = {
-    'port'  : Number,
-    'path'  : path,
-    'help'  : Boolean,
-    'log'   : Boolean,
-    'ngrok' : Boolean,
-    'watch' : Boolean
+    'port'     : Number,
+    'path'     : path,
+    'help'     : Boolean,
+    'log'      : Boolean,
+    'ngrok'    : Boolean,
+    'watch'    : Boolean,
+    'interval' : Number
   };
 
   var shortHands = {
@@ -146,6 +149,7 @@ serve.process_args = function (){
     'l': '--log',
     'n': '--ngrok',
     'w': '--watch',
+    'i': '--interval',
     's': '--no-log',
     'silent': '--no-log',
     'usage': '--help'
