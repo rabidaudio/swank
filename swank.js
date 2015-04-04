@@ -54,7 +54,7 @@ var serve = function(opts, callback){
   //defaults
   var dir  = opts.path || process.cwd(); //default to CWD
   var port = opts.port || process.env.PORT || 8000;
-  var host = (os.hostname()||'localhost');
+  var host = 'localhost';
   var log  = (opts.log === undefined ? (opts.console ? true : false) : opts.log);
 
   var liveReloadOpts = opts.liveReload || {};
