@@ -16,10 +16,11 @@ Install
 
 Usage
 -----
-    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent | -s]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent | -s]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
 
 - `--ngrok`: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
 - `--watch`: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
+- `--interval`: watch interval. Defaults to 1s
 - `--silent`: disable logging of requests
 - `--port`: specify the local port to use. Defaults to `$PORT` or `8000`
 - `--path`: the path to the root directory of the server. Defaults to the current working directory
@@ -34,6 +35,7 @@ var defaults = {
   help: false,
   ngrok: false,
   watch: false,
+  interval: 1000,
   log: true,
   liveReload: {}
 };

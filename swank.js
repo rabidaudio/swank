@@ -39,7 +39,7 @@ var serve = function(opts, callback){
   //start by returning usage info if requested
   if(opts.help && opts.console){
     console.log(
-      'Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]\n\n'+
+      'Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]\n\n'+
       '--ngrok: pipe your server through [ngrok\'s](https://www.npmjs.org/package/ngrok) local tunnel\n'+
       '--watch: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your'+
         'directory, causing a reload when files change\n'+
