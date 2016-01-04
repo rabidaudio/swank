@@ -156,6 +156,7 @@ describe('Swank', function (){
         });
       });
     });
+
   });
 
   describe('modular', function (){
@@ -232,5 +233,28 @@ describe('Swank', function (){
       rmrf.sync('test/fixtures/many');
       stop_watching();
     });
+  });
+
+  describe('watch+ngrok', function(){
+
+    it('should allow ngrok tunnelling AND a watch server', function(mocha_done){
+      this.timeout(10000);
+      run('bin/swank', ['--ngrok', '--watch', '--path', 'test/fixtures/'], null, function (data, child_done){
+        //url of ngrok server. implicit testing that url is valid
+        var nrok_url = data.toString().match(/https?:\/\/[a-z0-9]+.ngrok.com/)[0].replace('https', 'http');
+
+        open(nrok_url, function (res){
+          expect(res.statusCode).to.equal(200);
+          expect(res.body).to.contain('Hello, World');
+
+          expect(res.body).to.contain('livereload.js');
+          expect(res.body).to.contain('ngrok.com');
+          
+          child_done();
+          mocha_done();  
+        });
+      });
+    });
+
   });
 });
