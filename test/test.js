@@ -166,16 +166,14 @@ describe('Swank', function (){
      serve({
       path: 'test/fixtures',
       port: 1234
-     }, function (err, warn, url){
-      expect(err).not.to.exist;
-      expect(warn).not.to.exist;
-      open(url, function (res){
-       expect(res.statusCode).to.equal(200);
-       expect(res.body).to.contain('Hello, World');
-       done();
+     })
+     .then(function (url){
+       open(url, function (res){
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.contain('Hello, World');
+        done();
       });
-     });
-
+     }).catch(done);
     });
   });
 

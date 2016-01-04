@@ -10,11 +10,12 @@ var morgan      = require('morgan');
 var liveReload  = require('connect-livereload');
 var tinylr      = require('tiny-lr');
 var watch       = require('watch');
+var ngrok       = require('ngrok');
 var nopt        = require('nopt');
 var colors      = require('colors');
+var Promise     = require("bluebird");
 
 
-var serve = function(opts, callback){
 /*
   Takes in an object like this (all optional, defaults shown):
     {
@@ -24,17 +25,17 @@ var serve = function(opts, callback){
       ngrok: false,
       watch: false,
       log: true,
+      app: null,
       liveReload: {}
     }
 
-  Returns a callback when the server is ready with two arguments
-    function(error, warning, url)
+  Returns a  Promise:
+    fufilled: (url, app)
+    rejected: (error)
 */
+var serve = function(opts){
 
   opts = opts || {};
-  if(typeof callback !== 'function'){
-    callback = function(){}; // no-op
-  }
 
   //start by returning usage info if requested
   if(opts.help && opts.console){
@@ -61,72 +62,69 @@ var serve = function(opts, callback){
   var interval = opts.interval || 1000;
   liveReloadOpts.port = liveReloadOpts.port || 35729;
 
-  var ngrok = false;
-  var warning = null;
+  return new Promise(function(resolve, reject){
 
-  if(opts.ngrok){
-    try{
-      ngrok = require('ngrok');
-    }catch(err){
-      warning = 'ngrok is optional and not installed automatically. Run `npm install ngrok` to use this feature.';
+    //start server
+    var app = opts.app || connect();
+
+    if(log){
+      app.use(morgan('combined'));
     }
-  }
 
-  //start server
-  var app = connect();
+    if(opts.watch){
+      app.use(liveReload(liveReloadOpts));                    //inject script into pages
 
-  if(log){
-    app.use(morgan('combined'));
-  }
+      tinylr().listen(liveReloadOpts.port, function (){        //start respond server
+        var last_change_request = new Date().valueOf();
+        var WATCH_TIMEOUT = 500;
 
-  if(opts.watch){
-    app.use(liveReload(liveReloadOpts));                    //inject script into pages
+        watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {      //when a file changes, cause a reload
+          if (typeof f === 'object' && prev === null && curr === null) {
+           // Finished walking the tree
+          } else {
+            var liveReloadURL = url.format({
+              protocol: 'http',
+              hostname: host,
+              port: liveReloadOpts.port,
+              pathname: '/changed',
+              query: {files: f}
+            });
 
-    tinylr().listen(liveReloadOpts.port, function (){        //start respond server
-      var last_change_request = new Date().valueOf();
-      var WATCH_TIMEOUT = 500;
+            if(log){
+              console.log(('File changed: '+f).blue);
+            }
 
-      watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {      //when a file changes, cause a reload
-        if (typeof f === 'object' && prev === null && curr === null) {
-         // Finished walking the tree
-        } else {
-          var liveReloadURL = url.format({
-            protocol: 'http',
-            hostname: host,
-            port: liveReloadOpts.port,
-            pathname: '/changed',
-            query: {files: f}
-          });
-
-          if(log){
-            console.log(('File changed: '+f).blue);
+            var now = new Date().valueOf();
+            if(now > last_change_request + WATCH_TIMEOUT){
+              //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
+              http.get(liveReloadURL);
+              last_change_request = now;
+            }
           }
+        });
+      });
+    }
 
-          var now = new Date().valueOf();
-          if(now > last_change_request + WATCH_TIMEOUT){
-            //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
-            http.get(liveReloadURL);
-            last_change_request = now;
-          }
+    app.use(serveStatic(dir));
+    http.createServer(app).listen(port);
+
+    if(opts.ngrok){
+      ngrok.connect({port: port}, function (err, url){
+        if(err){
+          reject(err);
+        }else{
+          resolve(url);
         }
       });
-    });
-  }
-
-  app.use(serveStatic(dir));
-  http.createServer(app).listen(port);
-
-  if(ngrok){
-    ngrok.connect({port: port}, function (err, url){
-      callback(err, warning, url);
-    });
-  }else{
-    callback(null, warning, url.format({
-      protocol: 'http',
-      hostname: host,
-      port: port
-    }));
-  }
+    }else{
+      var u = url.format({
+        protocol: 'http',
+        hostname: host,
+        port: port
+      });
+      resolve(u);
+    }
+  });
 };
 
 
@@ -163,15 +161,13 @@ serve.process_args = function (){
     opts.path = path.resolve(opts.argv.remain.join(' '));
   }
 
-  serve(opts, function(error, warning, url){
-    if(error){
-      console.log(('ERROR: '+error).red);
-    }else if(warning){
-      console.log(('WARNING: '+warning).yellow);
-    }else{
+  serve(opts)
+    .then(function(url){
       console.log(('\n>  '+url+'\n\n').green);
-    }
-  });
+    })
+    .catch(function(err){
+      console.log(('ERROR: '+error).red);
+    });
 };
 
 module.exports = serve; // You can use this as a module now, too
