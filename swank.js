@@ -13,8 +13,7 @@ var watch       = require('watch');
 var ngrok       = require('ngrok');
 var nopt        = require('nopt');
 var colors      = require('colors');
-var Promise     = require("bluebird");
-
+var Promise     = require('bluebird');
 
 /*
   Takes in an object like this (all optional, defaults shown):
@@ -29,11 +28,11 @@ var Promise     = require("bluebird");
       liveReload: {}
     }
 
-  Returns a  Promise:
-    fufilled: (url, app)
+  Returns a Promise:
+    fufilled: ({url, app})
     rejected: (error)
 */
-var serve = function(opts){
+var serve = function (opts){
 
   opts = opts || {};
 
@@ -60,60 +59,82 @@ var serve = function(opts){
 
   var liveReloadOpts = opts.liveReload || {};
   var interval = opts.interval || 1000;
-  liveReloadOpts.port = liveReloadOpts.port || 35729;
+  if(opts.ngrok && opts.watch){
+    if(liveReloadOpts.port && opts.console && opts.log){
+      console.log(('The liveReload port supplied has been overwritten as the ngrok option was also supplied '+
+        'and for both to function, liveReload must use the same port as the app.').yellow);
+    }
+    liveReloadOpts.port = port;
+  }else{
+    liveReloadOpts.port = liveReloadOpts.port || 35729;
+  }
 
-  return new Promise(function(resolve, reject){
+  return new Promise(function (resolve, reject){
 
     //start server
     var app = opts.app || connect();
+
+    // actualy serve files
+    app.use(serveStatic(dir));
 
     if(log){
       app.use(morgan('combined'));
     }
 
     if(opts.watch){
-      app.use(liveReload(liveReloadOpts));                    //inject script into pages
+      //inject script into pages
+      app.use(liveReload(liveReloadOpts));
 
-      tinylr().listen(liveReloadOpts.port, function (){        //start respond server
-        var last_change_request = new Date().valueOf();
-        var WATCH_TIMEOUT = 500;
+      if(opts.ngrok){
+        //use the same port
+        app.use(tinylr.middleware({ app: app }));
+        if(opts.console && opts.log){
+          console.log(('Note that there are some consequences to using both watch and ngrok at the same time. '+
+            'Live reload will not work if your app responds to GET /connect already.').yellow);
+        }
+      }else{
+        tinylr().listen(liveReloadOpts.port);
+      }
 
-        watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {      //when a file changes, cause a reload
-          if (typeof f === 'object' && prev === null && curr === null) {
-           // Finished walking the tree
-          } else {
-            var liveReloadURL = url.format({
-              protocol: 'http',
-              hostname: host,
-              port: liveReloadOpts.port,
-              pathname: '/changed',
-              query: {files: f}
-            });
+      var last_change_request = new Date().valueOf();
+      var WATCH_TIMEOUT = 500;
 
-            if(log){
-              console.log(('File changed: '+f).blue);
-            }
+      //when a file changes, cause a reload
+      watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {
+        if (typeof f === 'object' && prev === null && curr === null) {
+         // Finished walking the tree
+        } else {
+          var liveReloadURL = url.format({
+            protocol: 'http',
+            hostname: host,
+            port: liveReloadOpts.port,
+            pathname: '/changed',
+            query: {files: f}
+          });
 
-            var now = new Date().valueOf();
-            if(now > last_change_request + WATCH_TIMEOUT){
-              //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
-              http.get(liveReloadURL);
-              last_change_request = now;
-            }
+          if(log){
+            console.log(('File changed: '+f).blue);
           }
-        });
+
+          var now = new Date().valueOf();
+          if(now > last_change_request + WATCH_TIMEOUT){
+            //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
+            http.get(liveReloadURL);
+            last_change_request = now;
+          }
+        }
       });
     }
 
-    app.use(serveStatic(dir));
-    http.createServer(app).listen(port);
+    var server = http.createServer(app);
+    server.listen(port);
 
     if(opts.ngrok){
-      ngrok.connect({port: port}, function (err, url){
+      ngrok.connect({port: port}, function (err, u){
         if(err){
           reject(err);
         }else{
-          resolve(url);
+          resolve({url: u, port: port, server: server, app: app});
         }
       });
     }else{
@@ -122,11 +143,13 @@ var serve = function(opts){
         hostname: host,
         port: port
       });
-      resolve(u);
+      resolve({url: u, port: port, server: server, app: app});
     }
   });
 };
 
+// TODO act as middleware, allowing for the same options as serve-static (and passing those opts to serve-static) //https://github.com/expressjs/serve-static
+// serve.middleware = function (req, res, next)
 
 // run with command line arguments
 serve.process_args = function (){
@@ -162,12 +185,12 @@ serve.process_args = function (){
   }
 
   serve(opts)
-    .then(function(url){
-      console.log(('\n>  '+url+'\n\n').green);
+    .then(function (res){
+      console.log(('\n>  '+res.url+'\n\n').green);
     })
-    .catch(function(err){
-      console.log(('ERROR: '+error).red);
+    .catch(function (err){
+      console.log(err.toString().red);
     });
 };
 
-module.exports = serve; // You can use this as a module now, too
+module.exports = serve;

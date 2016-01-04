@@ -167,8 +167,10 @@ describe('Swank', function (){
       path: 'test/fixtures',
       port: 1234
      })
-     .then(function (url){
-       open(url, function (res){
+     .then(function (res){
+      expect(res.port).to.equal(1234);
+      expect(res.app).to.be.ok;
+      open(res.url, function (res){
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.contain('Hello, World');
         done();
