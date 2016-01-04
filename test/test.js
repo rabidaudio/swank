@@ -11,7 +11,7 @@ var rmrf          = require('rimraf');
 var procs = [];
 
 function run(command, args, opts, callback){
- var proc = child_process.spawn(command, args, opts);
+ var proc = child_process.spawn(command, args || [], opts || {});
  procs.push(proc);
  proc.stdout.once('data', function (data) {
   var done = function (){ proc.kill('SIGHUP'); };
@@ -143,12 +143,10 @@ describe('Swank', function (){
     });
 
     it('should allow ngrok tunnelling', function (mocha_done){
-
+      this.timeout(10000);
       run('bin/swank', ['--ngrok', 'test/fixtures/'], null, function (data, child_done){
-
         //url of ngrok server. implicit testing that url is valid
         var url = data.toString().match(/https?:\/\/[a-z0-9]+.ngrok.com/)[0].replace('https', 'http');
-
         open(url, function (res){
           expect(res.statusCode).to.equal(200);
           expect(res.body).to.contain('Hello, World');
@@ -156,10 +154,8 @@ describe('Swank', function (){
           child_done();
           mocha_done();  
         });
-
       });
     });
-
   });
 
   describe('modular', function (){
