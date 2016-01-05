@@ -85,7 +85,7 @@ describe 'Swank', ()->
 
     it 'should insert livereload.js', (done) ->
       swank({path: 'test/fixtures', watch: true}).then (@s)->
-        getPage @s.url # {url: "#{@s.url}/index.html", headers: {"Cache-Control":"no-cache", "Pragma":"no-cache"}}
+        getPage {url: "http://localhost:8000",   headers: { 'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' }}
         .then (res) ->
           expect(res.statusCode).to.equal 200
           expect(res.body).to.contain 'livereload.js'

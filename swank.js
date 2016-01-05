@@ -77,31 +77,27 @@ var serve = function (opts){
     //start server
     var app = opts.app || connect();
 
-    //setHeaders: function (res, path, stat){ res.setHeader('Cache-Control', 'no-cache'); }
-
-    // liveReload needs to come before serveStatic
-    if(opts.watch){
-      //inject script into pages
-      app.use(liveReload(liveReloadOpts));
-    }
-
-    // actualy serve files
-    app.use(serveStatic(dir, {
-      setHeaders: function (res, path, stat){ res.setHeader('Cache-Control', 'no-cache'); }
-    }));
-
     var liveReloadServer = null;
 
     if(log){
       app.use(morgan('combined'));
     }
 
+    // liveReload injection needs to come before serveStaic
+    if(opts.watch){
+      //inject script into pages
+      app.use(liveReload(liveReloadOpts));
+    }
+
+    // actualy serve files
+    app.use(serveStatic(dir));
+
     if(opts.watch){
 
       if(opts.ngrok){
         //use the same port
         liveReloadServer = tinylr.middleware({ app: app });
-        app.use(tinylr);
+        app.use(liveReloadServer);
         if(opts.console && opts.log){
           console.log(('Note that there are some consequences to using both watch and ngrok at the same time. '+
             'Live reload will not work if your app responds to GET /connect already.').yellow);
@@ -164,7 +160,7 @@ var serve = function (opts){
 };
 
 // TODO act as middleware, allowing for the same options as serve-static (and passing those opts to serve-static) //https://github.com/expressjs/serve-static
-// serve.middleware = function (req, res, next)
+// serve.middleware = function (opts){ return function (req, res, next){};};
 
 // run with command line arguments
 serve.processArgs = function (){
