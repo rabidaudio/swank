@@ -59,6 +59,7 @@ var serve = function (opts){
 
   var liveReloadOpts = opts.liveReload || {};
   var interval = opts.interval || 1000;
+
   if(opts.ngrok && opts.watch){
     if(liveReloadOpts.port && opts.console && opts.log){
       console.log(('The liveReload port supplied has been overwritten as the ngrok option was also supplied '+
@@ -69,34 +70,48 @@ var serve = function (opts){
     liveReloadOpts.port = liveReloadOpts.port || 35729;
   }
 
+  // console.log(opts, dir, host, log, liveReloadOpts, interval);
+
   return new Promise(function (resolve, reject){
 
     //start server
     var app = opts.app || connect();
 
+    //setHeaders: function (res, path, stat){ res.setHeader('Cache-Control', 'no-cache'); }
+
+    // liveReload needs to come before serveStatic
+    if(opts.watch){
+      //inject script into pages
+      app.use(liveReload(liveReloadOpts));
+    }
+
     // actualy serve files
-    app.use(serveStatic(dir));
+    app.use(serveStatic(dir, {
+      setHeaders: function (res, path, stat){ res.setHeader('Cache-Control', 'no-cache'); }
+    }));
+
+    var liveReloadServer = null;
 
     if(log){
       app.use(morgan('combined'));
     }
 
     if(opts.watch){
-      //inject script into pages
-      app.use(liveReload(liveReloadOpts));
 
       if(opts.ngrok){
         //use the same port
-        app.use(tinylr.middleware({ app: app }));
+        liveReloadServer = tinylr.middleware({ app: app });
+        app.use(tinylr);
         if(opts.console && opts.log){
           console.log(('Note that there are some consequences to using both watch and ngrok at the same time. '+
             'Live reload will not work if your app responds to GET /connect already.').yellow);
         }
       }else{
-        tinylr().listen(liveReloadOpts.port);
+        liveReloadServer = tinylr();
+        liveReloadServer.listen(liveReloadOpts.port);
       }
 
-      var last_change_request = new Date().valueOf();
+      var lastChangeRequest = new Date().valueOf();
       var WATCH_TIMEOUT = 500;
 
       //when a file changes, cause a reload
@@ -117,10 +132,10 @@ var serve = function (opts){
           }
 
           var now = new Date().valueOf();
-          if(now > last_change_request + WATCH_TIMEOUT){
+          if(now > lastChangeRequest + WATCH_TIMEOUT){
             //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
-            http.get(liveReloadURL);
-            last_change_request = now;
+            lastChangeRequest = now;
+            http.get(liveReloadURL); //tell tinylr what pages changed
           }
         }
       });
@@ -134,7 +149,7 @@ var serve = function (opts){
         if(err){
           reject(err);
         }else{
-          resolve({url: u, port: port, server: server, app: app});
+          resolve({url: u, port: port, server: server, app: app, liveReloadServer: liveReloadServer});
         }
       });
     }else{
@@ -143,7 +158,7 @@ var serve = function (opts){
         hostname: host,
         port: port
       });
-      resolve({url: u, port: port, server: server, app: app});
+      resolve({url: u, port: port, server: server, app: app, liveReloadServer: liveReloadServer});
     }
   });
 };
@@ -152,7 +167,7 @@ var serve = function (opts){
 // serve.middleware = function (req, res, next)
 
 // run with command line arguments
-serve.process_args = function (){
+serve.processArgs = function (){
   var knownOpts = {
     'port'     : Number,
     'path'     : path,
