@@ -10,16 +10,14 @@ swank = require '../swank'
 getPage = (url) ->
   new Promise (resolve, reject) ->
     request url, (err, res, body) ->
-      if err
-        reject(err)
-      else
-        res.body = body
-        resolve res
+      return reject(err) if err
+      res.body = body
+      resolve res
     .end()  
 
-describe 'Swank', ()->
+describe 'Swank', () ->
 
-  describe 'file serve', ()->
+  describe 'file serve', () ->
 
     s = null
 
@@ -56,10 +54,10 @@ describe 'Swank', ()->
       .catch done
 
 
-  describe 'defaults', ()->
+  describe 'defaults', () ->
 
     it 'should serve files in the current directory by default', (done) ->
-      swank().then (@s)->
+      swank().then (@s) ->
         getPage "#{@s.url}/test/fixtures"
         .then (res) ->
           expect(res.statusCode).to.equal 200
@@ -68,22 +66,8 @@ describe 'Swank', ()->
         .catch done
         .finally () -> @s.server.close()
 
-    it 'should use PORT environment variable by default', (done) ->
-      originalEnv = process.env # make a backup of env vars
-      process.env.PORT = 1234
-      swank().then (@s)->
-        getPage 'http://localhost:1234/test/fixtures'
-        .then (res) ->
-          expect(res.statusCode).to.equal 200
-          expect(res.body).to.contain 'Hello, World'
-          done()
-        .catch done
-        .finally () ->
-          @s.server.close()
-          process.env = originalEnv
 
-
-  describe 'arguments', ()->
+  describe 'arguments', () ->
 
     it 'should have a configurable port', (done) ->
       swank({path: 'test/fixtures', port: 1234})
@@ -108,13 +92,13 @@ describe 'Swank', ()->
       .finally () -> @s.server.close()
 
 
-  describe 'watch', ()->
+  describe 'watch', () ->
 
-    describe 'serve', ()->
+    describe 'serve', () ->
       s = null
 
       before (done) ->
-        swank({path: 'test/fixtures', watch: true}).then (ss)->
+        swank({path: 'test/fixtures', watch: true}).then (ss) ->
           s = ss
           done()
 
@@ -136,7 +120,7 @@ describe 'Swank', ()->
           done()
         .catch done
 
-      describe 'simulate', ()->
+      describe 'simulate', () ->
 
         before () ->
           # make a bunch of files
@@ -153,46 +137,47 @@ describe 'Swank', ()->
             done()
           .catch done
 
-    describe 'close', ()->
+    describe 'close', () ->
 
-      it 'should also close the livereload server after closing', (done)->
-        swank({path: 'test/fixtures', watch: true}).then (@s)->
+      it 'should also close the livereload server after closing', (done) ->
+        swank({path: 'test/fixtures', watch: true}).then (@s) ->
           getPage 'http://localhost:35729'
           .then (res) ->
             expect(res.statusCode).to.equal 200
-            @s.server.close ()->
+            @s.server.close () ->
               getPage 'http://localhost:35729'
               .then (res) -> done new Error "expected request to throw"
               .catch (err) -> done()
           .catch done
 
-  # describe('watch+ngrok', function(){
 
-  #   it('should allow ngrok tunnelling AND a watch server', function(mocha_done){
-  #     this.timeout(10000);
-  #     run('bin/swank', ['--ngrok', '--watch', '--path', 'test/fixtures/'], null, function (data, child_done){
-  #       //url of ngrok server. implicit testing that url is valid
-  #       var nrok_url = data.toString().match(/https?:\/\/[a-z0-9]+.ngrok.com/)[0].replace('https', 'http');
+  # describe 'watch+ngrok', () ->
 
-  #       open(nrok_url, function (res){
-  #         expect(res.statusCode).to.equal(200);
-  #         expect(res.body).to.contain('Hello, World');
+  #   it 'should allow ngrok tunnelling AND a watch server', (done) ->
+  #     @timeout 5000
+  #     swank({path: 'test/fixtures', watch: true, ngrok: true}).then (@s) ->
+  #       expect(@s).url.to.match /https?:\/\/[a-z0-9]+.ngrok.com/
+  #       getPage(@s)
+  #     .then (req) ->
+  #       expect(res.statusCode).to.equal 200
+  #       expect(res.body).to.contain 'livereload.js'
+  #       livereloadUrl = res.body.match ???
+  #       getPage(livereloadUrl)
+  #     .then (req) ->
+  #       expect(res.statusCode).to.equal 200
+  #       done()
+  #     .catch done
+  #     .finally @s.server.close()
 
-  #         expect(res.body).to.contain('livereload.js');
-  #         expect(res.body).to.contain('ngrok.com');
-          
-  #         child_done();
-  #         mocha_done();  
-  #       });
-  #     });
-  #   });
 
-  describe 'command line', ()->
+  describe 'command line', () ->
 
     it 'should be runnable from the command line', (done) ->
       proc = child_process.spawn 'bin/swank', ['test/fixtures']
       proc.stdout.once 'data', (data) ->
-        getPage 'http://localhost:8000'
+        url = data.toString().replace('>', '').trim()
+        expect(url).to.equal 'http://localhost:8000'
+        getPage url
         .then (res) ->
           expect(res.body).to.contain 'Hello, World'
           done()
