@@ -9,7 +9,8 @@ swank = require '../swank'
 
 getPage = (url) ->
   new Promise (resolve, reject) ->
-    request url, (err, res, body) ->
+    headers = { 'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' }
+    request {url: url, headers: headers}, (err, res, body) ->
       return reject(err) if err
       res.body = body
       resolve res
@@ -93,55 +94,48 @@ describe 'Swank', () ->
 
     it 'should still respond to callback if given', (done) ->
       swank {path: 'test/fixtures', log: false}, (err, warn, url)->
-        return done(err) if err
-        return done(warn) if warn
+        throw err if err
+        throw warn if warn
         expect(url).to.equal "http://localhost:8000"
-        done()
+      .then (@s) -> done()
+      .catch done
+      .finally ()-> @s.server.close()
+
 
   describe 'watch', () ->
 
-    describe 'serve', () ->
-      s = null
-
-      before (done) ->
-        swank({path: 'test/fixtures', watch: true, log: false}).then (ss) ->
-          s = ss
-          done()
-
-      after (done) -> s.server.close(done)
-
-
-      it 'should insert livereload.js', (done) ->
-        getPage {url: s.url,   headers: { 'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' }}
-        .then (res) ->
-          expect(res.statusCode).to.equal 200
-          expect(res.body).to.contain 'livereload.js'
-          done()
-        .catch done
-
-      it 'should be running a livereload server', (done) ->
+    it 'should insert livereload.js and have a watch server running', (done) ->
+      swank({path: 'test/fixtures', watch: true, log: false})
+      .then (@s) ->
+        getPage @s.url
+      .then (res) ->
+        expect(res.statusCode).to.equal 200
+        expect(res.body).to.contain 'livereload.js'
         getPage 'http://localhost:35729'
-        .then (res) ->
-          expect(res.statusCode).to.equal 200
-          done()
-        .catch done
+      .then (res) ->
+        expect(res.statusCode).to.equal 200
+        done()
+      .catch done
+      .finally ()-> @s.server.close()
 
-      describe 'simulate', () ->
+    describe 'simulate', () ->
 
-        before () ->
-          # make a bunch of files
-          fs.mkdirSync 'test/fixtures/many'
-          fs.writeFileSync("test/fixtures/many/#{i}.txt", '') for i in [0..100]
-
-        it 'shouldn\'t crash when changing many files', (done) ->
+      it "shouldn't crash when changing many files", (done) ->
+        # make a bunch of files
+        fs.mkdirSync 'test/fixtures/many'
+        fs.writeFileSync("test/fixtures/many/#{i}.txt", '') for i in [0..100]
+        swank({path: 'test/fixtures', watch: true, log: false}).then (@s) ->
           # delete all the files
           rmrf.sync 'test/fixtures/many'
           getPage 'http://localhost:35729'
-          .then (res) ->
-            # livereload server should still be running
-            expect(res.statusCode).to.equal 200
-            done()
-          .catch done
+        .then (res) ->
+          # livereload server should still be running
+          expect(res.statusCode).to.equal 200
+          done()
+        .catch done
+        .finally ()->
+          @s.server.close()
+          rmrf.sync 'test/fixtures/many'
 
     describe 'close', () ->
 
@@ -155,6 +149,7 @@ describe 'Swank', () ->
               .then (res) -> done new Error "expected request to throw"
               .catch (err) -> done()
           .catch done
+          .finally ()-> @s.server.close()
 
 
   # describe 'watch+ngrok', () ->
@@ -194,3 +189,30 @@ describe 'Swank', () ->
       proc.stdout.once 'data', (data) ->
         expect(data.toString()).to.contain 'Usage: '
         done()
+
+
+  describe 'middleware', () ->
+
+    it 'should be usable as middleware', (done) ->
+      port = 8080
+      app = require('express')()
+      app.get '/', (req, res) -> res.sendStatus 200
+      Swank = swank.Swank
+      middleware = new Swank({port: port, log: false, watch: true})
+      app.use middleware.app
+      server = require('http').createServer app
+      middleware.addListeners server
+      server.listen port, ()->
+        getPage 'http://localhost:8080'
+        .then (res) ->
+          expect(res.statusCode).to.equal 200
+          getPage 'http://localhost:8080/test/fixtures'
+        .then (res) ->
+          expect(res.statusCode).to.equal 200
+          expect(res.body).to.contain 'livereload.js'
+          getPage 'http://localhost:35729'
+        .then (res) ->
+          expect(res.statusCode).to.equal 200
+          done()
+        .catch done
+        .finally ()-> server.close()
