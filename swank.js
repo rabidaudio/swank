@@ -14,6 +14,7 @@ var ngrok       = require('ngrok');
 var nopt        = require('nopt');
 var colors      = require('colors');
 var Promise     = require('bluebird');
+var debounce    = require('debounce');
 
 
 function Swank (opts){
@@ -79,43 +80,33 @@ function Swank (opts){
 
   if(opts.watch){
 
-    // if(opts.ngrok){
-      // //use the same port
-      // liveReloadServer = tinylr.middleware({ app: app });
-      // app.use(liveReloadServer);
-      // if(opts.console && opts.log){
-      //   console.log(('Note that there are some consequences to using both watch and ngrok at the same time. '+
-      //     'Live reload will not work if your app responds to GET /connect already.').yellow);
-      // }
-    // }else{
-    // }
-
-    var lastChangeRequest = new Date().valueOf();
-    var WATCH_TIMEOUT = 500;
+    // keep an array of all recently changed files
+    var changed = [];
 
     //when a file changes, cause a reload
     watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {
       if (typeof f === 'object' && prev === null && curr === null) {
        // Finished walking the tree
       } else {
-        var liveReloadURL = Url.format({
-          protocol: 'http',
-          hostname: host,
-          port: liveReloadOpts.port,
-          pathname: '/changed',
-          query: {files: f}
-        });
-
-        if(log){
-          console.log(('File changed: '+f).blue);
-        }
-
-        var now = new Date().valueOf();
-        if(now > lastChangeRequest + WATCH_TIMEOUT){
-          //if too many file changes happen at once, it can crash tinylr, so this is hacky rate-limiting
-          lastChangeRequest = now;
-          http.get(liveReloadURL); //tell tinylr what pages changed
-        }
+        changed.push(f);
+        //send an update of all changed files, debounced every interval
+        debounce(function (){
+          var data = JSON.stringify({ files: changed });
+          var req = http.request({
+              protocol: 'http',
+              hostname: host,
+              port: liveReloadOpts.port,
+              path: '/changed',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': data.length
+              }
+          });
+          req.write(data);
+          req.end();
+          changed = [];
+        }, interval);
       }
     });
 

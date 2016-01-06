@@ -8,6 +8,7 @@
     "colors": "^1.0.3",
     "connect": "~3.3.4",
     "connect-livereload": "^0.5.3",
+    "debounce": "^1.0.0",
     "morgan": "^1.5.1",
     "ngrok": "^0.1.92",
     "nopt": "^3.0.1",
