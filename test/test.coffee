@@ -122,7 +122,7 @@ describe 'Swank', ()->
 
 
       it 'should insert livereload.js', (done) ->
-        getPage {url: s.url,   headers: { 'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' }}
+        getPage {url: "http://localhost:8000",   headers: { 'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' }}
         .then (res) ->
           expect(res.statusCode).to.equal 200
           expect(res.body).to.contain 'livereload.js'
@@ -165,27 +165,6 @@ describe 'Swank', ()->
               .then (res) -> done new Error "expected request to throw"
               .catch (err) -> done()
           .catch done
-
-  # describe('watch+ngrok', function(){
-
-  #   it('should allow ngrok tunnelling AND a watch server', function(mocha_done){
-  #     this.timeout(10000);
-  #     run('bin/swank', ['--ngrok', '--watch', '--path', 'test/fixtures/'], null, function (data, child_done){
-  #       //url of ngrok server. implicit testing that url is valid
-  #       var nrok_url = data.toString().match(/https?:\/\/[a-z0-9]+.ngrok.com/)[0].replace('https', 'http');
-
-  #       open(nrok_url, function (res){
-  #         expect(res.statusCode).to.equal(200);
-  #         expect(res.body).to.contain('Hello, World');
-
-  #         expect(res.body).to.contain('livereload.js');
-  #         expect(res.body).to.contain('ngrok.com');
-          
-  #         child_done();
-  #         mocha_done();  
-  #       });
-  #     });
-  #   });
 
   describe 'command line', ()->
 

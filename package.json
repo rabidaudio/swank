@@ -23,7 +23,7 @@
     "rimraf": "^2.3.1"
   },
   "scripts": {
-    "test": "node_modules/mocha/bin/mocha test/test.js"
+    "test": "node_modules/mocha/bin/mocha test/test.coffee"
   },
   "author": "charles@rabidaudio.com",
   "license": "MIT",

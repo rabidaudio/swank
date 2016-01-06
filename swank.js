@@ -83,7 +83,7 @@ var serve = function (opts){
       app.use(morgan('combined'));
     }
 
-    // liveReload injection needs to come before serveStaic
+    // liveReload injection needs to come before serveStatic
     if(opts.watch){
       //inject script into pages
       app.use(liveReload(liveReloadOpts));
@@ -104,7 +104,7 @@ var serve = function (opts){
         }
       }else{
         liveReloadServer = tinylr();
-        liveReloadServer.listen(liveReloadOpts.port);
+        liveReloadServer.listen(liveReloadOpts.port); // TODO wait until listening with 'error' listener
       }
 
       var lastChangeRequest = new Date().valueOf();
@@ -138,6 +138,14 @@ var serve = function (opts){
     }
 
     var server = http.createServer(app);
+
+    if(opts.watch){
+      // when the main server is closed, also close the liveReload server
+      server.addListener('close', function(){
+        liveReloadServer.close();
+      });
+    }
+
     server.listen(port);
 
     if(opts.ngrok){
