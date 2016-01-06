@@ -18,6 +18,7 @@
   "devDependencies": {
     "chai": "^2.0.0",
     "coffee-script": "^1.10.0",
+    "express": "^4.13.3",
     "mocha": "^2.1.0",
     "request": "^2.53.0",
     "rimraf": "^2.3.1"

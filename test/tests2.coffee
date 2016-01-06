@@ -22,7 +22,7 @@ describe 'Swank', () ->
     s = null
 
     before (done) ->
-      swank({path: 'test/fixtures'})
+      swank({path: 'test/fixtures', log: false})
       .then (ss) ->
         s = ss
         done()
@@ -70,7 +70,7 @@ describe 'Swank', () ->
   describe 'arguments', () ->
 
     it 'should have a configurable port', (done) ->
-      swank({path: 'test/fixtures', port: 1234})
+      swank({path: 'test/fixtures', port: 1234, log: false})
       .then (@s) -> getPage 'http://localhost:1234'
       .then (res) ->
         expect(res.body).to.contain 'Hello, World'
@@ -79,8 +79,8 @@ describe 'Swank', () ->
       .finally () -> @s.server.close()
 
     it 'should allow ngrok tunnelling', (done) ->
-      @timeout 5000
-      swank({path: 'test/fixtures', ngrok: true})
+      @timeout 10000
+      swank({path: 'test/fixtures', ngrok: true, log: false})
       .then (@s) ->
         expect(@s.url).to.match /https?:\/\/[a-z0-9]+.ngrok.com/
         getPage @s.url
@@ -91,6 +91,12 @@ describe 'Swank', () ->
       .catch done
       .finally () -> @s.server.close()
 
+    it 'should still respond to callback if given', (done) ->
+      swank {path: 'test/fixtures', log: false}, (err, warn, url)->
+        return done(err) if err
+        return done(warn) if warn
+        expect(url).to.equal "http://localhost:8000"
+        done()
 
   describe 'watch', () ->
 
@@ -98,7 +104,7 @@ describe 'Swank', () ->
       s = null
 
       before (done) ->
-        swank({path: 'test/fixtures', watch: true}).then (ss) ->
+        swank({path: 'test/fixtures', watch: true, log: false}).then (ss) ->
           s = ss
           done()
 
@@ -140,7 +146,7 @@ describe 'Swank', () ->
     describe 'close', () ->
 
       it 'should also close the livereload server after closing', (done) ->
-        swank({path: 'test/fixtures', watch: true}).then (@s) ->
+        swank({path: 'test/fixtures', watch: true, log: false}).then (@s) ->
           getPage 'http://localhost:35729'
           .then (res) ->
             expect(res.statusCode).to.equal 200
@@ -168,7 +174,6 @@ describe 'Swank', () ->
   #       done()
   #     .catch done
   #     .finally @s.server.close()
-
 
   describe 'command line', () ->
 

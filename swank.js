@@ -2,7 +2,7 @@
 
 var path        = require('path');
 var os          = require('os');
-var url         = require('url');
+var Url         = require('url');
 var http        = require('http');
 var connect     = require('connect');
 var serveStatic = require('serve-static');
@@ -15,6 +15,8 @@ var nopt        = require('nopt');
 var colors      = require('colors');
 var Promise     = require('bluebird');
 
+var host = 'localhost';
+
 /*
   Takes in an object like this (all optional, defaults shown):
     {
@@ -24,15 +26,14 @@ var Promise     = require('bluebird');
       ngrok: false,
       watch: false,
       log: true,
-      app: null,
       liveReload: {}
     }
 
   Returns a Promise:
-    fufilled: ({url, app})
+    fufilled: ({url, port, app, server})
     rejected: (error)
 */
-var serve = function (opts){
+var serve = function (opts, depreciatedCallback){
 
   opts = opts || {};
 
@@ -52,39 +53,42 @@ var serve = function (opts){
   }
 
   //defaults
-  var dir  = opts.path || process.cwd(); //default to CWD
   var port = opts.port || process.env.PORT || 8000;
-  var host = 'localhost';
-  var log  = (opts.log === undefined ? (opts.console ? true : false) : opts.log);
+  var dir  = opts.path || process.cwd(); //default to CWD
+
+  var log  = opts.log || true;
+  var format = (opts.log instanceof Object && opts.log.format ? opts.log.format : 'combined' );
+  var logOpts = (opts.log instanceof Object && opts.log.opts ? opts.log.opts : {} );
 
   var liveReloadOpts = opts.liveReload || {};
+  liveReloadOpts.port = liveReloadOpts.port || 35729;
+
   var interval = opts.interval || 1000;
 
-  if(opts.ngrok && opts.watch){
-    if(liveReloadOpts.port && opts.console && opts.log){
-      console.log(('The liveReload port supplied has been overwritten as the ngrok option was also supplied '+
-        'and for both to function, liveReload must use the same port as the app.').yellow);
+  var liveReloadServer = null;
+
+  var promise = new Promise(function (resolve, reject){
+
+    var app = connect();
+
+    // console.log(app, opts, dir, host, log, format, logOpts, liveReloadOpts);
+
+    if(opts.ngrok && opts.watch){
+      // if(liveReloadOpts.port && opts.console && opts.log){
+      //   console.log(('The liveReload port supplied has been overwritten as the ngrok option was also supplied '+
+      //     'and for both to function, liveReload must use the same port as the app.').yellow);
+      // }
+      // liveReloadOpts.port = port;
+      throw new Error('ngrok and watch options cannot currently be used at the same time.');
     }
-    liveReloadOpts.port = port;
-  }else{
-    liveReloadOpts.port = liveReloadOpts.port || 35729;
-  }
-
-  // console.log(opts, dir, host, log, liveReloadOpts, interval);
-
-  return new Promise(function (resolve, reject){
-
-    //start server
-    var app = opts.app || connect();
-
-    var liveReloadServer = null;
 
     if(log){
-      app.use(morgan('combined'));
+      app.use(morgan(format, logOpts));
     }
 
     // liveReload injection needs to come before serveStatic
     if(opts.watch){
+
       //inject script into pages
       app.use(liveReload(liveReloadOpts));
     }
@@ -94,18 +98,16 @@ var serve = function (opts){
 
     if(opts.watch){
 
-      if(opts.ngrok){
-        //use the same port
-        liveReloadServer = tinylr.middleware({ app: app });
-        app.use(liveReloadServer);
-        if(opts.console && opts.log){
-          console.log(('Note that there are some consequences to using both watch and ngrok at the same time. '+
-            'Live reload will not work if your app responds to GET /connect already.').yellow);
-        }
-      }else{
-        liveReloadServer = tinylr();
-        liveReloadServer.listen(liveReloadOpts.port); // TODO wait until listening with 'error' listener
-      }
+      // if(opts.ngrok){
+        // //use the same port
+        // liveReloadServer = tinylr.middleware({ app: app });
+        // app.use(liveReloadServer);
+        // if(opts.console && opts.log){
+        //   console.log(('Note that there are some consequences to using both watch and ngrok at the same time. '+
+        //     'Live reload will not work if your app responds to GET /connect already.').yellow);
+        // }
+      // }else{
+      // }
 
       var lastChangeRequest = new Date().valueOf();
       var WATCH_TIMEOUT = 500;
@@ -115,7 +117,7 @@ var serve = function (opts){
         if (typeof f === 'object' && prev === null && curr === null) {
          // Finished walking the tree
         } else {
-          var liveReloadURL = url.format({
+          var liveReloadURL = Url.format({
             protocol: 'http',
             hostname: host,
             port: liveReloadOpts.port,
@@ -135,40 +137,62 @@ var serve = function (opts){
           }
         }
       });
+
+      liveReloadServer = tinylr();
     }
 
+    // create HTTP server
     var server = http.createServer(app);
 
+    // server listeners
     if(opts.watch){
+      //when the app starts, also start the lr server
+      server.addListener('listening', function(){
+        liveReloadServer.listen(liveReloadOpts.port);
+      });
+
       // when the main server is closed, also close the liveReload server
-      server.addListener('close', function(){
-        liveReloadServer.close();
+      server.addListener('close', liveReloadServer.close);
+    }
+
+    if(opts.ngrok){
+      server.addListener('listening', function(){
+        ngrok.connect({port: port});
+      });
+
+      server.addListener('close', ngrok.disconnect);
+    }
+
+    server.once('error', reject);
+
+    if(opts.ngrok){
+      ngrok.once('error', reject);
+      ngrok.once('connect', function (url){
+        resolve({url: url, port: port, server: server, app: app});
+      });
+    }else{
+      server.once('listening', function(){
+        var url = Url.format({ protocol: 'http', hostname: host, port: port });
+        resolve({url: url, port: port, server: server, app: app});
       });
     }
 
     server.listen(port);
-
-    if(opts.ngrok){
-      ngrok.connect({port: port}, function (err, u){
-        if(err){
-          reject(err);
-        }else{
-          resolve({url: u, port: port, server: server, app: app, liveReloadServer: liveReloadServer});
-        }
-      });
-    }else{
-      var u = url.format({
-        protocol: 'http',
-        hostname: host,
-        port: port
-      });
-      resolve({url: u, port: port, server: server, app: app, liveReloadServer: liveReloadServer});
-    }
   });
-};
 
-// TODO act as middleware, allowing for the same options as serve-static (and passing those opts to serve-static) //https://github.com/expressjs/serve-static
-// serve.middleware = function (opts){ return function (req, res, next){};};
+  if(depreciatedCallback !== undefined){
+    if(log){
+      console.log(('Use of callback argument is depreciated, as swank now returns a promise. '+
+        'This functionality will be removed in a future version.').yellow);
+    }
+    promise.then(function (res){
+      depreciatedCallback(null, null, res.url);
+    }).catch(function (err){
+      depreciatedCallback(err, null, null);
+    });
+  }
+  return promise;
+};
 
 // run with command line arguments
 serve.processArgs = function (){
