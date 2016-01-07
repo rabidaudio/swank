@@ -34,7 +34,7 @@ var defaults = {
   path: '.',                              // the directory to use as root
   port: process.env.PORT || 8000,         // the port to serve on
   help: false,                            // print help and exit
-  ngrok: false,                           // tunnel requests through ngrok
+  ngrok: false,                           // tunnel requests through ngrok. Set to an object to pass options to ngrok
   watch: false,                           // run a liveReload server, and inject reload script into html pages. Can be an object with child object 'opts' for options to be passed to connect-livereload
   interval: 1000,                         // how often the watch system polls for file changes
   log: {format: 'combined', opts: {}},    // enable loging of requests and errors. Format and opts are passed to morgan. set to false to silence output

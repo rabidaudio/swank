@@ -45,6 +45,8 @@ function Swank (opts){
   var log  = (opts.log === undefined ? true : opts.log);
   var format = (opts.log instanceof Object && opts.log.format ? opts.log.format : 'combined' );
   var logOpts = (opts.log instanceof Object && opts.log.opts ? opts.log.opts : {} );
+  var ngrokOpts = (opts.ngrok instanceof Object ? opts.ngrok : {});
+  ngrokOpts.port = ngrokOpts.port || port;
 
   var liveReloadOpts = (opts.watch instanceof Object && opts.watch.opts ? opts.watch.opts : {} );
   liveReloadOpts.port = liveReloadOpts.port || 35729;
@@ -56,11 +58,6 @@ function Swank (opts){
   var app = connect();
 
   if(opts.ngrok && opts.watch){
-    // if(liveReloadOpts.port && opts.console && opts.log){
-    //   console.log(('The liveReload port supplied has been overwritten as the ngrok option was also supplied '+
-    //     'and for both to function, liveReload must use the same port as the app.').yellow);
-    // }
-    // liveReloadOpts.port = port;
     throw new Error('ngrok and watch options cannot currently be used at the same time.');
   }
 
@@ -124,7 +121,7 @@ function Swank (opts){
         liveReloadServer.listen(liveReloadOpts.port);
       }
       if(opts.ngrok){
-        ngrok.connect({port: port});
+        ngrok.connect(ngrokOpts);
       }
     });
 
