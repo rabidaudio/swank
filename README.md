@@ -20,26 +20,27 @@ Usage
 
 - `--ngrok`: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
 - `--watch`: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
-- `--interval`: watch interval. Defaults to 1s
+- `--interval`: how often watch polls for changes. Defaults to 1 second
 - `--silent`: disable logging of requests
 - `--port`: specify the local port to use. Defaults to `$PORT` or `8000`
 - `--path`: the path to the root directory of the server. Defaults to the current working directory
 
 
-You can also use it as a module.
+As a module
+-----------
 
 ```javascript
 var defaults = {
-  path: '.',
-  port: 8000,
-  help: false,
-  ngrok: false,
-  watch: false,
-  interval: 1000,
-  log: true,
-  liveReload: {}
+  path: '.',                              // the directory to use as root
+  port: process.env.PORT || 8000,         // the port to serve on
+  help: false,                            // print help and exit
+  ngrok: false,                           // tunnel requests through ngrok
+  watch: false,                           // run a liveReload server, and inject reload script into html pages. Can be an object with child object 'opts' for options to be passed to connect-livereload
+  interval: 1000,                         // how often the watch system polls for file changes
+  log: {format: 'combined', opts: {}},    // enable loging of requests and errors. Format and opts are passed to morgan. set to false to silence output
 };
-require('swank')(defaults);
+
+require('swank')(defaults);               //returns a promise
 ```
 
 For example, if you want to use it with [`gulp`](http://gulpjs.com):
@@ -52,13 +53,35 @@ gulp.task('serve', function(cb){
   swank({
     watch: true,
     path: 'dist'
-  }, function(err, warn, url){
-    console.log('Server running: '+url);
+  }).then(function(s){
+    console.log('Server running: '+s.url);
     cb();
   });
 });
+```
 
+As middleware
+-------------
 
+```js
+var express = require('express');
+var Swank = require('swank').Swank;
+var http = require('http');
+
+var app = express();
+
+app.get('/', function (req, res) {
+  res.send('Hello World!');
+});
+
+var middleware = new Swank({log: false, watch: true});
+app.use(middleware);
+
+var server = http.createServer(app);
+
+middleware.listenTo(server); //required for watch or ngrok functionality
+
+server.listen(8080); // will automatically start/stop watch or ngrok servers as required
 ```
 
 LICENSE

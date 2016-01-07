@@ -107,13 +107,13 @@ describe 'Swank', () ->
     it 'should insert livereload.js and have a watch server running', (done) ->
       swank({path: 'test/fixtures', watch: true, log: false})
       .then (@s) ->
+        getPage 'http://localhost:35729'
+      .then (res) ->
+        expect(res.statusCode).to.equal 200
         getPage @s.url
       .then (res) ->
         expect(res.statusCode).to.equal 200
         expect(res.body).to.contain 'livereload.js'
-        getPage 'http://localhost:35729'
-      .then (res) ->
-        expect(res.statusCode).to.equal 200
         done()
       .catch done
       .finally ()-> @s.server.close()
@@ -201,7 +201,7 @@ describe 'Swank', () ->
       middleware = new Swank({port: port, log: false, watch: true})
       app.use middleware.app
       server = require('http').createServer app
-      middleware.addListeners server
+      middleware.listenTo server
       server.listen port, ()->
         getPage 'http://localhost:8080'
         .then (res) ->

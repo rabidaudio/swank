@@ -116,7 +116,7 @@ function Swank (opts){
   this.app = app;
   this.port = port;
 
-  this.addListeners = function (server){
+  this.listenTo = function (server){
     
     //when the app starts, also start ngrok and the lr server
     server.addListener('listening', function(){
@@ -148,7 +148,7 @@ function Swank (opts){
       var server = http.createServer(app);
 
       // server listeners
-      self.addListeners(server);
+      self.listenTo(server);
 
       server.once('error', reject);
 
@@ -172,19 +172,6 @@ function Swank (opts){
   };
 }
 
-/*
-  Takes in an object like this (all optional, defaults shown):
-    {
-      path: '.',                            // the directory to use as root
-      port: process.env.PORT || 8000,       // the port to serve on
-      help: false,                          // print help and exit
-      ngrok: false,                         // tunnel requests through ngrok
-      watch: false,                         // run a liveReload server, and inject reload script into html pages. Can be an object with child object 'opts' for options to be passed to connect-livereload
-      log: {format: 'combined', opts: {}},  // options for morgan. set to falsy for silent
-    }
-
-  Returns a promise
-*/
 var serve = function (opts, depreciatedCallback){
 
   var promise = new Swank(opts).serve();
