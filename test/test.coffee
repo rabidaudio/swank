@@ -152,23 +152,23 @@ describe 'Swank', () ->
           .finally ()-> @s.server.close()
 
 
-  # describe 'watch+ngrok', () ->
-
-  #   it 'should allow ngrok tunnelling AND a watch server', (done) ->
-  #     @timeout 5000
-  #     swank({path: 'test/fixtures', watch: true, ngrok: true}).then (@s) ->
-  #       expect(@s).url.to.match /https?:\/\/[a-z0-9]+.ngrok.com/
-  #       getPage(@s)
-  #     .then (req) ->
-  #       expect(res.statusCode).to.equal 200
-  #       expect(res.body).to.contain 'livereload.js'
-  #       livereloadUrl = res.body.match ???
-  #       getPage(livereloadUrl)
-  #     .then (req) ->
-  #       expect(res.statusCode).to.equal 200
-  #       done()
-  #     .catch done
-  #     .finally @s.server.close()
+  describe 'watch+ngrok', () ->
+    it 'should allow ngrok tunnelling AND a watch server', (done) ->
+      @timeout 5000
+      swank({path: 'test/fixtures', watch: true, ngrok: true}).then (@s) ->
+        expect(@s).url.to.match /https?:\/\/[a-z0-9]+.ngrok.com/
+        getPage(@s)
+      .then (req) ->
+        expect(res.statusCode).to.equal 200
+        expect(res.body).to.contain 'livereload.js'
+        livereloadUrl = res.body.match(/<script src=\"([^"]+)\"/)[1]
+        expect(livereloadUrl).to.match /https?:\/\/[a-z0-9]+.ngrok.com\/livereload.js/
+        getPage(livereloadUrl)
+      .then (req) ->
+        expect(res.statusCode).to.equal 200
+        done()
+      .catch done
+      .finally @s.server.close()
 
   describe 'command line', () ->
 

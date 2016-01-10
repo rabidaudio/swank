@@ -7,7 +7,7 @@ swank
 
 #### It's `python -m SimpleHTTPServer` for Javascript, with a few extras.
 
-If you want to test local static files (HTML, JS, CSS), simply run `swank`.
+If you want to serve local static files (HTML, JS, CSS), simply run `swank`.
 It's even got livereload and introspected tunnels built in.
 
 Install
@@ -33,7 +33,6 @@ As a module
 var defaults = {
   path: '.',                              // the directory to use as root
   port: process.env.PORT || 8000,         // the port to serve on
-  help: false,                            // print help and exit
   ngrok: false,                           // tunnel requests through ngrok. Set to an object to pass options to ngrok
   watch: false,                           // run a liveReload server, and inject reload script into html pages. Can be an object with child object 'opts' for options to be passed to connect-livereload
   interval: 1000,                         // how often the watch system polls for file changes
