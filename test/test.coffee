@@ -83,7 +83,7 @@ describe 'Swank', () ->
       @timeout 10000
       swank({path: 'test/fixtures', ngrok: true, log: false})
       .then (@s) ->
-        expect(@s.url).to.match /https?:\/\/[a-z0-9]+.ngrok.com/
+        expect(@s.url).to.match /https?:\/\/[a-z0-9]+\.ngrok\.[a-z]+/
         getPage @s.url
       .then (res) ->
         expect(res.statusCode).to.equal 200
@@ -156,13 +156,13 @@ describe 'Swank', () ->
     it 'should allow ngrok tunnelling AND a watch server', (done) ->
       @timeout 5000
       swank({path: 'test/fixtures', watch: true, ngrok: true}).then (@s) ->
-        expect(@s).url.to.match /https?:\/\/[a-z0-9]+.ngrok.com/
+        expect(@s).url.to.match /https?:\/\/[a-z0-9]+\.ngrok\.[a-z]+/
         getPage(@s)
       .then (req) ->
         expect(res.statusCode).to.equal 200
         expect(res.body).to.contain 'livereload.js'
         livereloadUrl = res.body.match(/<script src=\"([^"]+)\"/)[1]
-        expect(livereloadUrl).to.match /https?:\/\/[a-z0-9]+.ngrok.com\/livereload.js/
+        expect(livereloadUrl).to.match /https?:\/\/[a-z0-9]+\.ngrok\.[a-z]+\/livereload.js/
         getPage(livereloadUrl)
       .then (req) ->
         expect(res.statusCode).to.equal 200

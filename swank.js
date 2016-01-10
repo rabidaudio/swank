@@ -51,15 +51,16 @@ function Swank (opts){
   var liveReloadOpts = (opts.watch instanceof Object && opts.watch.opts ? opts.watch.opts : {} );
   liveReloadOpts.port = liveReloadOpts.port || 35729;
 
+  var ngrokWatchOpts = JSON.parse(JSON.stringify(ngrokOpts)); //copy values
+  ngrokWatchOpts.subdomain = undefined; // if they configured a subdomain, we shouldn't use it here
+  ngrokWatchOpts.proto = 'http';
+  ngrokWatchOpts.addr = liveReloadOpts.port;
+
   var interval = opts.interval || 1000;
 
   var liveReloadServer = null;
 
   var app = connect();
-
-  if(opts.ngrok && opts.watch){
-    throw new Error('ngrok and watch options cannot currently be used at the same time.');
-  }
 
   if(log){
     app.use(morgan(format, logOpts));
@@ -67,6 +68,12 @@ function Swank (opts){
 
   // liveReload injection needs to come before serveStatic
   if(opts.watch){
+
+    if(opts.ngrok){
+      //unfortunately, we can't set the hostname for livereload until the proxy is actually running,
+      //  because we don't know what name we'll get. 
+      throw new Error('ngrok and watch options cannot currently be used at the same time.');
+    }
 
     //inject script into pages
     app.use(liveReload(liveReloadOpts));
