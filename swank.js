@@ -86,12 +86,21 @@ class Swank {
 
   listenTo (server) {
     // when the app starts, also start ngrok and the lr server
-    server.addListener('listening', this.connect)
+    server.addListener('listening', () => {
+      if (this.watch) {
+        this.liveReloadServer.listen(this.liveReloadOpts.port)
+      }
+      if (this.ngrok) {
+        require('ngrok').connect(this.ngrokOpts).catch(console.error.bind(console))
+      }
+    })
     // when the main server is closed, also close ngrok and the liveReload server
     server.addListener('close', this.close)
   }
 
-  async connect () {
+  async serve () {
+    // create HTTP server
+    this.server = http.createServer(this.app)
     if (this.watch) {
       await new Promise(resolve => {
         this.liveReloadServer.listen(this.liveReloadOpts.port, null, resolve)
@@ -100,23 +109,20 @@ class Swank {
     if (this.ngrok) {
       this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
     }
-  }
-
-  async serve () {
-    // create HTTP server
-    this.server = http.createServer(this.app)
-    await this.connect()
     await new Promise(resolve => this.server.listen(this.port, resolve))
     return this
   }
 
   async close () {
     if (this.watch) {
-      await this.watcher.close()
       this.liveReloadServer.close()
+      await this.watcher.close()
     }
     if (this.ngrok) {
       await require('ngrok').disconnect()
+    }
+    if (this.server && this.server.listening) {
+      await new Promise((resolve, reject) => this.server.close((err) => err ? reject(err) : resolve()))
     }
   }
 
@@ -201,7 +207,7 @@ function processArgs () {
   }
 
   serve(opts)
-    .then(swank => console.log(colors.green(`\n>  ${swank.url}\n\n`)))
+    .then(swank => console.log(colors.green(`\n${swank.url}\n\n`)))
     .catch(err => console.error(err, colors.red(err.message)))
 }
 

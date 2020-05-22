@@ -1,6 +1,5 @@
 expect        = require('chai').expect
 request       = require 'request'
-Promise       = require 'bluebird'
 child_process = require 'child_process'
 rmrf          = require 'rimraf'
 fs            = require 'fs'
@@ -58,14 +57,14 @@ describe 'Swank', () ->
   describe 'defaults', () ->
 
     it 'should serve files in the current directory by default', (done) ->
-      swank().then (@s) ->
+      swank({ log: false }).then (@s) ->
         getPage "#{@s.url}/test/fixtures"
         .then (res) ->
           expect(res.statusCode).to.equal 200
           expect(res.body).to.contain 'Hello, World'
-          done()
-        .catch done
-        .finally () -> @s.server.close()
+          @s.close()
+        .then done
+        .catch () -> @s.close().then(done)
 
 
   describe 'arguments', () ->
@@ -75,31 +74,22 @@ describe 'Swank', () ->
       .then (@s) -> getPage 'http://localhost:1234'
       .then (res) ->
         expect(res.body).to.contain 'Hello, World'
-        done()
-      .catch done
-      .finally () -> @s.server.close()
+        @s.close()
+      .then done
+      .catch () -> @s.close().then(done)
 
     it 'should allow ngrok tunnelling', (done) ->
       @timeout 10000
       swank({path: 'test/fixtures', ngrok: true, log: false})
       .then (@s) ->
-        expect(@s.url).to.match /https?:\/\/[a-z0-9]+.ngrok.com/
+        expect(@s.url).to.match /https?:\/\/[a-z0-9]+.ngrok.io/
         getPage @s.url
       .then (res) ->
         expect(res.statusCode).to.equal 200
         expect(res.body).to.contain 'Hello, World'
-        done()
-      .catch done
-      .finally () -> @s.server.close()
-
-    it 'should still respond to callback if given', (done) ->
-      swank {path: 'test/fixtures', log: false}, (err, warn, url)->
-        throw err if err
-        throw warn if warn
-        expect(url).to.equal "http://localhost:8000"
-      .then (@s) -> done()
-      .catch done
-      .finally ()-> @s.server.close()
+        @s.close()
+      .then done
+      .catch () -> @s.close().then(done)
 
 
   describe 'watch', () ->
@@ -114,14 +104,15 @@ describe 'Swank', () ->
       .then (res) ->
         expect(res.statusCode).to.equal 200
         expect(res.body).to.contain 'livereload.js'
-        done()
-      .catch done
-      .finally ()-> @s.server.close()
+        @s.close()
+      .then done
+      .catch () -> @s.close().then(done)
 
     describe 'simulate', () ->
 
       it "shouldn't crash when changing many files", (done) ->
         # make a bunch of files
+        rmrf.sync 'test/fixtures/many'
         fs.mkdirSync 'test/fixtures/many'
         fs.writeFileSync("test/fixtures/many/#{i}.txt", '') for i in [0..100]
         swank({path: 'test/fixtures', watch: true, log: false}).then (@s) ->
@@ -131,10 +122,10 @@ describe 'Swank', () ->
         .then (res) ->
           # livereload server should still be running
           expect(res.statusCode).to.equal 200
-          done()
-        .catch done
+          @s.close()
+        .then done
+        .catch () -> @s.close().then(done)
         .finally ()->
-          @s.server.close()
           rmrf.sync 'test/fixtures/many'
 
     describe 'close', () ->
@@ -144,12 +135,15 @@ describe 'Swank', () ->
           getPage 'http://localhost:35729'
           .then (res) ->
             expect(res.statusCode).to.equal 200
-            @s.server.close () ->
+            @s.close()
+          .then () ->
               getPage 'http://localhost:35729'
-              .then (res) -> done new Error "expected request to throw"
-              .catch (err) -> done()
-          .catch done
-          .finally ()-> @s.server.close()
+              .then (res) -> done(new Error("expected request to throw"))
+              .catch (err) -> "ok"
+          .then () ->
+            @s.close()
+          .then done
+          .catch () -> @s.close().then(done)
 
 
   # describe 'watch+ngrok', () ->
@@ -168,7 +162,7 @@ describe 'Swank', () ->
   #       expect(res.statusCode).to.equal 200
   #       done()
   #     .catch done
-  #     .finally @s.server.close()
+  #     .finally @s.close()
 
   describe 'command line', () ->
 
@@ -176,8 +170,8 @@ describe 'Swank', () ->
       proc = child_process.spawn 'bin/swank', ['test/fixtures']
       proc.stdout.once 'data', (data) ->
         url = data.toString().replace('>', '').trim()
-        expect(url).to.equal 'http://localhost:8000'
-        getPage url
+        expect(url).to.contain 'http://localhost:8000'
+        getPage 'http://localhost:8000'
         .then (res) ->
           expect(res.body).to.contain 'Hello, World'
           done()
@@ -201,8 +195,8 @@ describe 'Swank', () ->
       middleware = new Swank({port: port, log: false, watch: true})
       app.use middleware.app
       server = require('http').createServer app
-      middleware.listenTo server
-      server.listen port, ()->
+      middleware.listenTo(server)
+      server.listen port, () ->
         getPage 'http://localhost:8080'
         .then (res) ->
           expect(res.statusCode).to.equal 200
