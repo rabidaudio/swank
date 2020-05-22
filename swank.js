@@ -1,235 +1,211 @@
-'use strict';
+const path = require('path')
+const Url = require('url')
+const http = require('http')
+const connect = require('connect')
+const serveStatic = require('serve-static')
+const colors = require('colors/safe')
+const { isObject } = require('lodash')
+const { debounce } = require('debounce')
 
-var path        = require('path');
-var os          = require('os');
-var Url         = require('url');
-var http        = require('http');
-var connect     = require('connect');
-var serveStatic = require('serve-static');
-var morgan      = require('morgan');
-var liveReload  = require('connect-livereload');
-var tinylr      = require('tiny-lr');
-var watch       = require('watch');
-var ngrok       = require('ngrok');
-var nopt        = require('nopt');
-var colors      = require('colors');
-var Promise     = require('bluebird');
-var debounce    = require('debounce');
+class Swank {
+  constructor (opts) {
+    this.host = 'localhost'
+    this.opts = opts || {}
 
+    this.app = connect()
 
-function Swank (opts){
+    if (this.ngrok && this.watch) {
+      throw new Error('ngrok and watch options cannot currently be used at the same time, because a parallel web socket server on a different port is requred for live reload.')
+    }
 
-  var host = 'localhost';
+    if (this.log) {
+      this.app.use(this.getLogger())
+    }
 
-  opts = opts || {};
+    // liveReload injection needs to come before serveStatic
+    if (this.watch) {
+      this.watchForFileChanges()
+      // inject script into pages
+      this.app.use(require('connect-livereload')(this.liveReloadOpts))
+      // listen for reload requests
+      this.liveReloadServer = require('tiny-lr')()
+    }
 
-  //start by returning usage info if requested
-  if(opts.help && opts.console){
-    console.log(
-      'Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]\n\n'+
-      '--ngrok: pipe your server through [ngrok\'s](https://www.npmjs.org/package/ngrok) local tunnel\n'+
-      '--watch: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your'+
-        'directory, causing a reload when files change\n'+
-      '--interval: watch interval. Defaults to 1s\n'+
-      '--silent: disable logging of requests\n'+
-      '--port: specify the local port to use. Defaults to $PORT or 8000\n'+
-      '--path: the path to the root directory of the server. Defaults to the current working directory\n\n'
-    );
-    return;
+    // actualy serve files
+    this.app.use(serveStatic(this.dir))
   }
 
-  //defaults
-  var port = opts.port || process.env.PORT || 8000;
-  var dir  = opts.path || process.cwd(); //default to CWD
-
-  var log  = (opts.log === undefined ? true : opts.log);
-  var format = (opts.log instanceof Object && opts.log.format ? opts.log.format : 'combined' );
-  var logOpts = (opts.log instanceof Object && opts.log.opts ? opts.log.opts : {} );
-  var ngrokOpts = (opts.ngrok instanceof Object ? opts.ngrok : {});
-  ngrokOpts.port = ngrokOpts.port || port;
-
-  var liveReloadOpts = (opts.watch instanceof Object && opts.watch.opts ? opts.watch.opts : {} );
-  liveReloadOpts.port = liveReloadOpts.port || 35729;
-
-  var interval = opts.interval || 1000;
-
-  var liveReloadServer = null;
-
-  var app = connect();
-
-  if(opts.ngrok && opts.watch){
-    throw new Error('ngrok and watch options cannot currently be used at the same time.');
+  get port () {
+    return this.opts.port || process.env.PORT || 8000
   }
 
-  if(log){
-    app.use(morgan(format, logOpts));
+  get dir () {
+    return this.opts.path || process.cwd()
   }
 
-  // liveReload injection needs to come before serveStatic
-  if(opts.watch){
-
-    //inject script into pages
-    app.use(liveReload(liveReloadOpts));
+  get log () {
+    return this.opts.log === undefined ? true : this.opts.log
   }
 
-  // actualy serve files
-  app.use(serveStatic(dir));
-
-  if(opts.watch){
-
-    // keep an array of all recently changed files
-    var changed = [];
-
-    //when a file changes, cause a reload
-    watch.watchTree(dir, { interval: interval }, function (f, curr, prev) {
-      if (typeof f === 'object' && prev === null && curr === null) {
-       // Finished walking the tree
-      } else {
-        changed.push(f);
-        //send an update of all changed files, debounced every interval
-        debounce(function (){
-          var data = JSON.stringify({ files: changed });
-          var req = http.request({
-              protocol: 'http',
-              hostname: host,
-              port: liveReloadOpts.port,
-              path: '/changed',
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': data.length
-              }
-          });
-          req.write(data);
-          req.end();
-          changed = [];
-        }, interval);
-      }
-    });
-
-    liveReloadServer = tinylr();
+  get watch () {
+    return this.opts.watch
   }
 
-  this.app = app;
-  this.port = port;
+  get url () {
+    if (this.ngrok) {
+      return this.ngrokUrl
+    }
+    return Url.format({ protocol: 'http', hostname: this.host, port: this.port })
+  }
 
-  this.listenTo = function (server){
-    
-    //when the app starts, also start ngrok and the lr server
-    server.addListener('listening', function(){
-      if(opts.watch){
-        liveReloadServer.listen(liveReloadOpts.port);
-      }
-      if(opts.ngrok){
-        ngrok.connect(ngrokOpts);
-      }
-    });
+  get liveReloadUrl () {
+    return Url.format({ protocol: 'http', hostname: this.host, port: this.liveReloadOpts.port })
+  }
 
+  get ngrok () {
+    return this.opts.ngrok
+  }
+
+  get ngrokOpts () {
+    const opts = (isObject(this.opts.ngrok) ? this.opts.ngrok : {})
+    opts.port = opts.port || this.port
+    return opts
+  }
+
+  getLogger () {
+    const format = isObject(this.opts.log) && this.opts.log.format ? this.opts.log.format : 'combined'
+    const logOpts = isObject(this.opts.log) && this.opts.log.opts ? this.opts.log.opts : {}
+    return require('morgan')(format, logOpts)
+  }
+
+  get liveReloadOpts () {
+    const opts = (isObject(this.opts.watch) && this.opts.watch.opts ? this.opts.watch.opts : {})
+    opts.port = opts.port || 35729
+    return opts
+  }
+
+  listenTo (server) {
+    // when the app starts, also start ngrok and the lr server
+    server.addListener('listening', this.connect)
     // when the main server is closed, also close ngrok and the liveReload server
-    server.addListener('close', function(){
-      if(opts.watch){
-        watch.unwatchTree(dir);
-        liveReloadServer.close();
+    server.addListener('close', this.close)
+  }
+
+  async connect () {
+    if (this.watch) {
+      await new Promise(resolve => {
+        this.liveReloadServer.listen(this.liveReloadOpts.port, null, resolve)
+      })
+    }
+    if (this.ngrok) {
+      this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
+    }
+  }
+
+  async serve () {
+    // create HTTP server
+    this.server = http.createServer(this.app)
+    await this.connect()
+    await new Promise(resolve => this.server.listen(this.port, resolve))
+    return this
+  }
+
+  async close () {
+    if (this.watch) {
+      await this.watcher.close()
+      this.liveReloadServer.close()
+    }
+    if (this.ngrok) {
+      await require('ngrok').disconnect()
+    }
+  }
+
+  triggerReload () {
+    var data = JSON.stringify({ files: this.changedFiles })
+    var req = http.request(this.liveReloadUrl, {
+      path: '/changed',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': data.length
       }
-      if(opts.ngrok){
-        ngrok.disconnect();
-      }
-    });
-  };
+    })
+    req.write(data)
+    req.end()
+    this.changedFiles = []
+  }
 
-  this.serve = function (){
-
-    var self = this;
-    return new Promise(function (resolve, reject){
-      // create HTTP server
-      var server = http.createServer(app);
-
-      // server listeners
-      self.listenTo(server);
-
-      server.once('error', reject);
-
-      self.server = server;
-
-      if(opts.ngrok){
-        ngrok.once('error', reject);
-        ngrok.once('connect', function (url){
-          self.url = url;
-          resolve(self);
-        });
-      }else{
-        server.once('listening', function(){
-          self.url = Url.format({ protocol: 'http', hostname: host, port: port });
-          resolve(self);
-        });
-      }
-
-      server.listen(port);
-    });
-  };
+  watchForFileChanges () {
+    this.watcher = require('chokidar').watch(this.dir)
+    // keep an array of all recently changed files
+    this.changedFiles = []
+    const interval = this.opts.interval || 1000
+    // when a file changes, cause a reload
+    this.watcher.on('change', path => {
+      this.changedFiles.push(path)
+      // send an update of all changed files, debounced every interval
+      debounce(this.triggerReload, interval, true).bind(this)()
+    })
+  }
 }
 
-var serve = function (opts, depreciatedCallback){
-
-  var promise = new Swank(opts).serve();
-
-  if(depreciatedCallback !== undefined){
-    if(opts.log !== false){
-      console.log(('Use of callback argument is depreciated, as swank now returns a promise. '+
-        'This functionality will be removed in a future version.').yellow);
-    }
-    promise.then(function (res){
-      depreciatedCallback(null, null, res.url);
-    }).catch(function (err){
-      depreciatedCallback(err, null, null);
-    });
-  }
-
-  return promise;
-};
+function serve (opts) {
+  return new Swank(opts).serve()
+}
 
 // run with command line arguments
-serve.processArgs = function (){
-  var knownOpts = {
-    'port'     : Number,
-    'path'     : path,
-    'help'     : Boolean,
-    'log'      : Boolean,
-    'ngrok'    : Boolean,
-    'watch'    : Boolean,
-    'interval' : Number
-  };
+function processArgs () {
+  const knownOpts = {
+    port: Number,
+    path: path,
+    help: Boolean,
+    log: Boolean,
+    ngrok: Boolean,
+    watch: Boolean,
+    interval: Number
+  }
 
-  var shortHands = {
-    'p': '--port',
-    'd': '--path',
-    'h': '--help',
-    'l': '--log',
-    'n': '--ngrok',
-    'w': '--watch',
-    'i': '--interval',
-    's': '--no-log',
-    'silent': '--no-log',
-    'usage': '--help'
-  };
+  const shortHands = {
+    p: '--port',
+    d: '--path',
+    h: '--help',
+    l: '--log',
+    n: '--ngrok',
+    w: '--watch',
+    i: '--interval',
+    s: '--no-log',
+    silent: '--no-log',
+    usage: '--help'
+  }
 
-  var opts = nopt(knownOpts, shortHands);
-  opts.console = true; // run from the command-line
+  const opts = require('nopt')(knownOpts, shortHands)
 
-  //take path if not given explicitly
-  if(!opts.path && opts.argv.remain.length > 0){
-    opts.path = path.resolve(opts.argv.remain.join(' '));
+  // take path if not given explicitly
+  if (!opts.path && opts.argv.remain.length > 0) {
+    opts.path = path.resolve(opts.argv.remain.join(' '))
+  }
+
+  // start by returning usage info if requested
+  if (opts.help) {
+    console.log(`
+      Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+
+      --ngrok: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
+      --watch: a watch+livereload server. Includes "livereload.js" in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
+      --interval: watch interval. Defaults to 1s
+      --silent: disable logging of requests
+      --port: specify the local port to use. Defaults to $PORT or 8000
+      --path: the path to the root directory of the server. Defaults to the current working directory
+    `)
+    process.exit(0)
   }
 
   serve(opts)
-    .then(function (res){
-      console.log(('\n>  '+res.url+'\n\n').green);
-    })
-    .catch(function (err){
-      console.log(err.toString().red);
-    });
-};
+    .then(swank => console.log(colors.green(`\n>  ${swank.url}\n\n`)))
+    .catch(err => console.error(err, colors.red(err.message)))
+}
 
-serve.Swank = Swank;
+serve.Swank = Swank
+serve.processArgs = processArgs
 
-module.exports = serve;
+module.exports = serve
