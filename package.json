@@ -20,13 +20,13 @@
     "chai": "^2.0.0",
     "coffee-script": "^1.10.0",
     "express": "^4.13.3",
-    "mocha": "^2.1.0",
+    "mocha": "^8.0.1",
     "request": "^2.53.0",
     "rimraf": "^2.3.1",
     "standard": "^14.3.4"
   },
   "scripts": {
-    "test": "mocha test/test.coffee",
+    "test": "mocha --exit test/test.js",
     "lint": "standard"
   },
   "author": "charles@rabidaudio.com",
