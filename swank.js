@@ -85,9 +85,7 @@ class Swank {
     server.addListener('listening', () => {
       (async () => {
         if (this.watch) {
-          await new Promise((resolve, reject) => {
-            this.liveReloadServer.listen(this.liveReloadOpts.port, resolve)
-          })
+          await this.startWatch()
         }
         if (this.ngrok) {
           await this.startNgrok()
@@ -99,16 +97,23 @@ class Swank {
     server.addListener('close', this.close)
   }
 
+  startWatch () {
+    return new Promise(resolve => {
+      this.liveReloadServer.listen(this.liveReloadOpts.port, null, resolve)
+    })
+  }
+
   async startNgrok () {
     // TODO: accept ngrok options like subdomain/hostname
     this.ngrokProc = childProcess.spawn('ngrok', ['http', this.port, '--log', 'stdout', '--log-format', 'json'])
     this.ngrokUrl = await new Promise((resolve, reject) => {
       this.ngrokProc.on('error', (err) => {
         if (err.code === 'ENOENT') {
-          throw new Error('Unable to find ngrok binary. Ngrok must be installed before use.' +
-            'For directions, see: https://ngrok.com/download')
+          reject(new Error('Unable to find ngrok binary. Ngrok must be installed before use.' +
+            ' For directions, see: https://ngrok.com/download'))
+        } else {
+          reject(err)
         }
-        throw err
       })
       const logStream = new ReadlineStream({})
       this.ngrokProc.stdout.pipe(logStream)
@@ -125,18 +130,21 @@ class Swank {
   }
 
   async serve () {
-    // create HTTP server
-    this.server = http.createServer(this.app)
-    if (this.watch) {
-      await new Promise(resolve => {
-        this.liveReloadServer.listen(this.liveReloadOpts.port, null, resolve)
-      })
+    try {
+      // create HTTP server
+      this.server = http.createServer(this.app)
+      if (this.watch) {
+        await this.startWatch()
+      }
+      if (this.ngrok) {
+        await this.startNgrok()
+      }
+      await new Promise(resolve => this.server.listen(this.port, resolve))
+      return this
+    } catch (e) {
+      await this.close()
+      throw e
     }
-    if (this.ngrok) {
-      await this.startNgrok()
-    }
-    await new Promise(resolve => this.server.listen(this.port, resolve))
-    return this
   }
 
   async close () {
