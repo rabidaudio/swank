@@ -1,6 +1,6 @@
 {
   "name": "swank",
-  "version": "1.3.2",
+  "version": "1.4.1",
   "description": "Simple static server with livereload and tunneling options",
   "main": "swank.js",
   "dependencies": {
@@ -35,7 +35,7 @@
   "author": "charles@rabidaudio.com",
   "license": "MIT",
   "bin": {
-    "swank": "./bin/swank"
+    "swank": "bin/swank"
   },
   "standard": {
     "env": [
