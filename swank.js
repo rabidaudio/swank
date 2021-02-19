@@ -107,7 +107,15 @@ class Swank {
       })
     }
     if (this.ngrok) {
-      this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
+      try {
+        this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
+      } catch (e) {
+        if (e.code === 'MODULE_NOT_FOUND') {
+          console.error('To use `--ngrok`, you need to install the package:')
+          console.error('  npm i -g ngrok')
+        }
+        throw e
+      }
     }
     await new Promise(resolve => this.server.listen(this.port, resolve))
     return this
