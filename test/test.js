@@ -55,8 +55,8 @@ describe('Swank', () => {
 
   describe('defaults', () => {
     it('should serve files in the current directory by default', async () => {
+      var s = await swank({ log: false })
       try {
-        var s = await swank({ log: false })
         var res = await getPage(`${s.url}/test/fixtures`)
         expect(res.statusCode).to.equal(200)
         expect(res.body).to.contain('Hello, World')
@@ -68,8 +68,8 @@ describe('Swank', () => {
 
   describe('arguments', () => {
     it('should have a configurable port', async () => {
+      var s = await swank({ path: 'test/fixtures', port: 1234, log: false })
       try {
-        var s = await swank({ path: 'test/fixtures', port: 1234, log: false })
         var res = await getPage('http://localhost:1234')
         expect(res.body).to.contain('Hello, World')
       } finally {
@@ -78,8 +78,8 @@ describe('Swank', () => {
     })
 
     it('should allow ngrok tunnelling', async () => {
+      var s = await swank({ path: 'test/fixtures', ngrok: true, log: false })
       try {
-        var s = await swank({ path: 'test/fixtures', ngrok: true, log: false })
         expect(s.url).to.match(/https?:\/\/[a-z0-9]+.ngrok.io/)
         var res = await getPage(s.url)
         expect(res.statusCode).to.equal(200)
@@ -92,8 +92,8 @@ describe('Swank', () => {
 
   describe('watch', () => {
     it('should insert livereload.js and have a watch server running', async () => {
+      var s = await swank({ path: 'test/fixtures', watch: true, log: false })
       try {
-        var s = await swank({ path: 'test/fixtures', watch: true, log: false })
         var res = await getPage('http://localhost:35729')
         expect(res.statusCode).to.equal(200)
         res = await getPage(s.url)
@@ -118,8 +118,8 @@ describe('Swank', () => {
       })
 
       it("shouldn't crash when changing many files", async () => {
+        var s = await swank({ path: 'test/fixtures', watch: true, log: false })
         try {
-          var s = await swank({ path: 'test/fixtures', watch: true, log: false })
           // delete all the files
           rmrf.sync('test/fixtures/many')
           var res = await getPage('http://localhost:35729')
@@ -133,8 +133,8 @@ describe('Swank', () => {
 
     describe('close', () => {
       it('should also close the livereload server after closing', async () => {
+        var s = await swank({ path: 'test/fixtures', watch: true, log: false })
         try {
-          var s = await swank({ path: 'test/fixtures', watch: true, log: false })
           var res = await getPage('http://localhost:35729')
           // livereload server should still be running
           expect(res.statusCode).to.equal(200)
