@@ -4,6 +4,7 @@ const http = require('http')
 const connect = require('connect')
 const serveStatic = require('serve-static')
 const colors = require('colors/safe')
+const open = require('open')
 const childProcess = require('child_process')
 const ReadlineStream = require('readline-stream')
 const { isObject } = require('lodash')
@@ -203,6 +204,7 @@ function processArgs () {
     path: path,
     help: Boolean,
     log: Boolean,
+    open: Boolean,
     ngrok: Boolean,
     watch: Boolean,
     interval: Number
@@ -213,6 +215,7 @@ function processArgs () {
     d: '--path',
     h: '--help',
     l: '--log',
+    o: '--open',
     n: '--ngrok',
     w: '--watch',
     i: '--interval',
@@ -231,10 +234,11 @@ function processArgs () {
   // start by returning usage info if requested
   if (opts.help) {
     console.log(`
-      Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+      Usage: swank [[--silent]] [[--open | -o]] [[--ngrok | -n]] [[--watch | -w]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
 
       --ngrok: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
       --watch: a watch+livereload server. Includes "livereload.js" in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
+      --open: open a browser after the server starts
       --interval: watch interval. Defaults to 1s
       --silent: disable logging of requests
       --port: specify the local port to use. Defaults to $PORT or 8000
@@ -244,8 +248,13 @@ function processArgs () {
   }
 
   serve(opts)
-    .then(swank => console.log(colors.green(`\n${swank.url}\n\n`)))
-    .catch(err => console.error(err, colors.red(err.message)))
+    .then(swank => {
+      console.log(colors.green(`\n${swank.url}\n\n`))
+      if (opts.open) {
+        return open(swank.url)
+      }
+    })
+    .catch(err => console.error(colors.red(err.message)))
 }
 
 serve.Swank = Swank
