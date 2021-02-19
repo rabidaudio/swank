@@ -4,6 +4,8 @@ const http = require('http')
 const connect = require('connect')
 const serveStatic = require('serve-static')
 const colors = require('colors/safe')
+const childProcess = require('child_process')
+const ReadlineStream = require('readline-stream')
 const { isObject } = require('lodash')
 const { debounce } = require('debounce')
 
@@ -66,12 +68,6 @@ class Swank {
     return this.opts.ngrok
   }
 
-  get ngrokOpts () {
-    const opts = (isObject(this.opts.ngrok) ? this.opts.ngrok : {})
-    opts.port = opts.port || this.port
-    return opts
-  }
-
   getLogger () {
     const format = isObject(this.opts.log) && this.opts.log.format ? this.opts.log.format : 'combined'
     const logOpts = isObject(this.opts.log) && this.opts.log.opts ? this.opts.log.opts : {}
@@ -91,11 +87,36 @@ class Swank {
         this.liveReloadServer.listen(this.liveReloadOpts.port)
       }
       if (this.ngrok) {
-        require('ngrok').connect(this.ngrokOpts).catch(console.error.bind(console))
+        this.startNgrok()
       }
     })
     // when the main server is closed, also close ngrok and the liveReload server
     server.addListener('close', this.close)
+  }
+
+  async startNgrok () {
+    // TODO: accept ngrok options like subdomain/hostname
+    this.ngrokProc = childProcess.spawn('ngrok', ['http', this.port, '--log', 'stdout', '--log-format', 'json'])
+    this.ngrokUrl = await new Promise((resolve, reject) => {
+      this.ngrokProc.on('error', (err) => {
+        if (err.code === 'ENOENT') {
+          throw new Error('Unable to find ngrok binary. Ngrok must be installed before use.' +
+            'For directions, see: https://ngrok.com/download')
+        }
+        throw err
+      })
+      const logStream = new ReadlineStream({})
+      this.ngrokProc.stdout.pipe(logStream)
+      logStream.on('data', (line) => {
+        if (this.log) {
+          console.log(line.toString().replace(/\s+$/, ''))
+        }
+        const data = JSON.parse(line)
+        if (data.msg === 'started tunnel' && data.name === 'command_line') {
+          resolve(data.url)
+        }
+      })
+    })
   }
 
   async serve () {
@@ -107,15 +128,7 @@ class Swank {
       })
     }
     if (this.ngrok) {
-      try {
-        this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
-      } catch (e) {
-        if (e.code === 'MODULE_NOT_FOUND') {
-          console.error('To use `--ngrok`, you need to install the package:')
-          console.error('  npm i -g ngrok')
-        }
-        throw e
-      }
+      await this.startNgrok()
     }
     await new Promise(resolve => this.server.listen(this.port, resolve))
     return this
@@ -127,7 +140,7 @@ class Swank {
       await this.watcher.close()
     }
     if (this.ngrok) {
-      await require('ngrok').disconnect()
+      this.ngrokProc.kill('SIGHUP')
     }
     if (this.server && this.server.listening) {
       await new Promise((resolve, reject) => this.server.close((err) => err ? reject(err) : resolve()))
