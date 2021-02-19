@@ -107,7 +107,15 @@ class Swank {
       })
     }
     if (this.ngrok) {
-      this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
+      try {
+        this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
+      } catch (e) {
+        if (e.code === 'MODULE_NOT_FOUND') {
+          console.error('To use `--ngrok`, you need to install the package:')
+          console.error('  npm i -g ngrok')
+        }
+        throw e
+      }
     }
     await new Promise(resolve => this.server.listen(this.port, resolve))
     return this
@@ -147,7 +155,10 @@ class Swank {
     this.changedFiles = []
     const interval = this.opts.interval || 1000
     // when a file changes, cause a reload
-    this.watcher.on('change', path => {
+    this.watcher.on('raw', (event, path) => {
+      if (event !== 'created' && event !== 'modified') {
+        return
+      }
       this.changedFiles.push(path)
       // send an update of all changed files, debounced every interval
       debounce(this.triggerReload, interval, true).bind(this)()
