@@ -22,8 +22,8 @@ jobs:
           sudo apt-get -y install wget unzip
           wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
           unzip ngrok-stable-linux-amd64.zip
-          export PATH="$PATH:$(pwd)"
-          which ngrok
+          pwd >> $GITHUB_PATH
+      - run: which ngrok
       - run: npm ci
       - run: npm run build --if-present
       - run: npm run lint --if-present
