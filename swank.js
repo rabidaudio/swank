@@ -83,12 +83,17 @@ class Swank {
   listenTo (server) {
     // when the app starts, also start ngrok and the lr server
     server.addListener('listening', () => {
-      if (this.watch) {
-        this.liveReloadServer.listen(this.liveReloadOpts.port)
-      }
-      if (this.ngrok) {
-        this.startNgrok()
-      }
+      (async () => {
+        if (this.watch) {
+          await new Promise((resolve, reject) => {
+            this.liveReloadServer.listen(this.liveReloadOpts.port, resolve)
+          })
+        }
+        if (this.ngrok) {
+          await this.startNgrok()
+        }
+        server.emit('swank_started', this)
+      })()
     })
     // when the main server is closed, also close ngrok and the liveReload server
     server.addListener('close', this.close)
