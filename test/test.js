@@ -200,10 +200,12 @@ describe('Swank', () => {
       app.use(middleware.app)
       const server = require('http').createServer(app)
       try {
-        middleware.listenTo(server)
-        await new Promise((resolve, reject) => {
-          server.listen(port, resolve)
+        var started = new Promise((resolve, reject) => {
+          server.once('swank_started', resolve)
         })
+        middleware.listenTo(server)
+        server.listen(port)
+        await started
         var res = await getPage('http://localhost:8080')
         expect(res.statusCode).to.equal(200)
         res = await getPage('http://localhost:8080/test/fixtures')

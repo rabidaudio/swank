@@ -4,6 +4,9 @@ const http = require('http')
 const connect = require('connect')
 const serveStatic = require('serve-static')
 const colors = require('colors/safe')
+const open = require('open')
+const childProcess = require('child_process')
+const ReadlineStream = require('readline-stream')
 const { isObject } = require('lodash')
 const { debounce } = require('debounce')
 
@@ -66,12 +69,6 @@ class Swank {
     return this.opts.ngrok
   }
 
-  get ngrokOpts () {
-    const opts = (isObject(this.opts.ngrok) ? this.opts.ngrok : {})
-    opts.port = opts.port || this.port
-    return opts
-  }
-
   getLogger () {
     const format = isObject(this.opts.log) && this.opts.log.format ? this.opts.log.format : 'combined'
     const logOpts = isObject(this.opts.log) && this.opts.log.opts ? this.opts.log.opts : {}
@@ -87,38 +84,68 @@ class Swank {
   listenTo (server) {
     // when the app starts, also start ngrok and the lr server
     server.addListener('listening', () => {
-      if (this.watch) {
-        this.liveReloadServer.listen(this.liveReloadOpts.port)
-      }
-      if (this.ngrok) {
-        require('ngrok').connect(this.ngrokOpts).catch(console.error.bind(console))
-      }
+      (async () => {
+        if (this.watch) {
+          await this.startWatch()
+        }
+        if (this.ngrok) {
+          await this.startNgrok()
+        }
+        server.emit('swank_started', this)
+      })()
     })
     // when the main server is closed, also close ngrok and the liveReload server
     server.addListener('close', this.close)
   }
 
-  async serve () {
-    // create HTTP server
-    this.server = http.createServer(this.app)
-    if (this.watch) {
-      await new Promise(resolve => {
-        this.liveReloadServer.listen(this.liveReloadOpts.port, null, resolve)
-      })
-    }
-    if (this.ngrok) {
-      try {
-        this.ngrokUrl = await require('ngrok').connect(this.ngrokOpts)
-      } catch (e) {
-        if (e.code === 'MODULE_NOT_FOUND') {
-          console.error('To use `--ngrok`, you need to install the package:')
-          console.error('  npm i -g ngrok')
+  startWatch () {
+    return new Promise(resolve => {
+      this.liveReloadServer.listen(this.liveReloadOpts.port, null, resolve)
+    })
+  }
+
+  async startNgrok () {
+    // TODO: accept ngrok options like subdomain/hostname
+    this.ngrokProc = childProcess.spawn('ngrok', ['http', this.port, '--log', 'stdout', '--log-format', 'json'])
+    this.ngrokUrl = await new Promise((resolve, reject) => {
+      this.ngrokProc.on('error', (err) => {
+        if (err.code === 'ENOENT') {
+          reject(new Error('Unable to find ngrok binary. Ngrok must be installed before use.' +
+            ' For directions, see: https://ngrok.com/download'))
+        } else {
+          reject(err)
         }
-        throw e
+      })
+      const logStream = new ReadlineStream({})
+      this.ngrokProc.stdout.pipe(logStream)
+      logStream.on('data', (line) => {
+        if (this.log) {
+          console.log(line.toString().replace(/\s+$/, ''))
+        }
+        const data = JSON.parse(line)
+        if (data.msg === 'started tunnel' && data.name === 'command_line') {
+          resolve(data.url)
+        }
+      })
+    })
+  }
+
+  async serve () {
+    try {
+      // create HTTP server
+      this.server = http.createServer(this.app)
+      if (this.watch) {
+        await this.startWatch()
       }
+      if (this.ngrok) {
+        await this.startNgrok()
+      }
+      await new Promise(resolve => this.server.listen(this.port, resolve))
+      return this
+    } catch (e) {
+      await this.close()
+      throw e
     }
-    await new Promise(resolve => this.server.listen(this.port, resolve))
-    return this
   }
 
   async close () {
@@ -127,7 +154,7 @@ class Swank {
       await this.watcher.close()
     }
     if (this.ngrok) {
-      await require('ngrok').disconnect()
+      this.ngrokProc.kill('SIGHUP')
     }
     if (this.server && this.server.listening) {
       await new Promise((resolve, reject) => this.server.close((err) => err ? reject(err) : resolve()))
@@ -177,6 +204,7 @@ function processArgs () {
     path: path,
     help: Boolean,
     log: Boolean,
+    open: Boolean,
     ngrok: Boolean,
     watch: Boolean,
     interval: Number
@@ -187,6 +215,7 @@ function processArgs () {
     d: '--path',
     h: '--help',
     l: '--log',
+    o: '--open',
     n: '--ngrok',
     w: '--watch',
     i: '--interval',
@@ -205,10 +234,11 @@ function processArgs () {
   // start by returning usage info if requested
   if (opts.help) {
     console.log(`
-      Usage: swank [[--ngrok | -n]] [[--watch | -w]] [[--silent]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+      Usage: swank [[--silent]] [[--open | -o]] [[--ngrok | -n]] [[--watch | -w]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
 
       --ngrok: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
       --watch: a watch+livereload server. Includes "livereload.js" in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
+      --open: open a browser after the server starts
       --interval: watch interval. Defaults to 1s
       --silent: disable logging of requests
       --port: specify the local port to use. Defaults to $PORT or 8000
@@ -218,8 +248,13 @@ function processArgs () {
   }
 
   serve(opts)
-    .then(swank => console.log(colors.green(`\n${swank.url}\n\n`)))
-    .catch(err => console.error(err, colors.red(err.message)))
+    .then(swank => {
+      console.log(colors.green(`\n${swank.url}\n\n`))
+      if (opts.open) {
+        return open(swank.url)
+      }
+    })
+    .catch(err => console.error(colors.red(err.message)))
 }
 
 serve.Swank = Swank

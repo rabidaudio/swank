@@ -18,7 +18,7 @@ Usage
 -----
     swank [[--ngrok | -n]] [[--watch | -w]] [[--silent | -s]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
 
-- `--ngrok`: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
+- `--ngrok`: pipe your server through [ngrok's](https://ngrok.com) local tunnel. The binary must be [installed on your system](https://ngrok.com/download)
 - `--watch`: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
 - `--interval`: how often watch polls for changes. Defaults to 1 second
 - `--silent`: disable logging of requests
@@ -34,7 +34,7 @@ var defaults = {
   path: '.',                              // the directory to use as root
   port: process.env.PORT || 8000,         // the port to serve on
   help: false,                            // print help and exit
-  ngrok: false,                           // tunnel requests through ngrok. Set to an object to pass options to ngrok
+  ngrok: false,                           // tunnel requests through ngrok
   watch: false,                           // run a liveReload server, and inject reload script into html pages. Can be an object with child object 'opts' for options to be passed to connect-livereload
   interval: 1000,                         // how often the watch system polls for file changes
   log: {format: 'combined', opts: {}},    // enable loging of requests and errors. Format and opts are passed to morgan. set to false to silence output
@@ -82,6 +82,7 @@ var server = http.createServer(app);
 middleware.listenTo(server); //required for watch or ngrok functionality
 
 server.listen(8080); // will automatically start/stop watch or ngrok servers as required
+server.on('swank_started', function (swank) { }); // emitted once the watch or ngrok servers are running
 ```
 
 LICENSE
