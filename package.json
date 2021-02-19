@@ -13,11 +13,13 @@
     "morgan": "^1.10.0",
     "ngrok": "^3.2.7",
     "nopt": "^3.0.1",
+    "serialize-javascript": ">=3.1.0",
     "serve-static": "^1.14.1",
     "tiny-lr": "^1.1.1"
   },
   "devDependencies": {
     "chai": "^2.0.0",
+    "chai-as-promised": "^7.1.1",
     "coffee-script": "^1.10.0",
     "express": "^4.13.3",
     "mocha": "^8.0.1",
@@ -33,6 +35,11 @@
   "license": "MIT",
   "bin": {
     "swank": "./bin/swank"
+  },
+  "standard": {
+    "env": [
+      "mocha"
+    ]
   },
   "repository": {
     "type": "git",
