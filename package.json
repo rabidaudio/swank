@@ -32,7 +32,7 @@
     "lint": "standard",
     "audit": "npm audit --omit dev"
   },
-  "author": "charles@rabidaudio.com",
+  "author": "julien@rabidaudio.com",
   "license": "MIT",
   "bin": {
     "swank": "bin/swank"
