@@ -16,13 +16,14 @@ Install
 
 Usage
 -----
-    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent | -s]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+    swank [[--ngrok | -n]] [[--watch | -w]] [[--silent | -s]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[--header | -H 'Key: val' ...]] [[ [[--path | -d]] root_directory]]
 
 - `--ngrok`: pipe your server through [ngrok's](https://ngrok.com) local tunnel. The binary must be [installed on your system](https://ngrok.com/download)
 - `--watch`: a watch+livereload server. Includes `livereload.js` in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
 - `--interval`: how often watch polls for changes. Defaults to 1 second
 - `--silent`: disable logging of requests
 - `--port`: specify the local port to use. Defaults to `$PORT` or `8000`
+- `--header`: a static header to include on requests. Can be provided multiple times
 - `--path`: the path to the root directory of the server. Defaults to the current working directory
 
 
@@ -35,9 +36,14 @@ var defaults = {
   port: process.env.PORT || 8000,         // the port to serve on
   help: false,                            // print help and exit
   ngrok: false,                           // tunnel requests through ngrok
-  watch: false,                           // run a liveReload server, and inject reload script into html pages. Can be an object with child object 'opts' for options to be passed to connect-livereload
+  watch: false,                           // run a liveReload server, and inject reload script into html pages. Can be
+                                          // an object with child object 'opts' for options to be passed to connect-livereload
+  headers: new Map([                     // headers to include in the response
+    ['Access-Control-Allow-Origin': '*'],
+  ]),
   interval: 1000,                         // how often the watch system polls for file changes
-  log: {format: 'combined', opts: {}},    // enable loging of requests and errors. Format and opts are passed to morgan. set to false to silence output
+  log: {format: 'combined', opts: {}},    // enable logging of requests and errors. Format and opts are passed to morgan.
+                                          // Set to false to silence output
 };
 
 require('swank')(defaults);               //returns a promise

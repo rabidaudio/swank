@@ -14,6 +14,7 @@ class Swank {
   constructor (opts) {
     this.host = 'localhost'
     this.opts = opts || {}
+    this.opts.headers = this.opts.headers || new Map()
 
     this.app = connect()
 
@@ -26,7 +27,7 @@ class Swank {
     }
 
     this.app.use((req, res, next) => {
-      res.setHeaders(this.headers)
+      res.setHeaders(this.opts.headers)
       return next()
     })
 
@@ -57,10 +58,6 @@ class Swank {
 
   get watch () {
     return this.opts.watch
-  }
-
-  get headers () {
-    return new Map((this.opts.header || []).map(v => v.split(': ', 2)))
   }
 
   get url () {
@@ -257,6 +254,10 @@ function processArgs () {
       --header: a static header to include on requests. Can be provided multiple times
     `)
     process.exit(0)
+  }
+
+  if (opts.header) {
+    opts.headers = new Map(opts.delete('header').map(v => v.split(': ', 2)))
   }
 
   serve(opts)

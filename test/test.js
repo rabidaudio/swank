@@ -84,10 +84,10 @@ describe('Swank', () => {
     it('should allow setting headers', async () => {
       var s = await swank({
         path: 'test/fixtures',
-        header: [
-          'Access-Control-Allow-Origin: *',
-          "Content-Security-Policy: style-src 'unsafe-inline';"
-        ],
+        headers: new Map([
+          ['Access-Control-Allow-Origin', '*'],
+          ['Content-Security-Policy', "style-src 'unsafe-inline';"]
+        ]),
         log: false
       })
 
