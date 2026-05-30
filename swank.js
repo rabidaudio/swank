@@ -257,7 +257,7 @@ function processArgs () {
   }
 
   if (opts.header) {
-    opts.headers = new Map(opts.delete('header').map(v => v.split(': ', 2)))
+    opts.headers = new Map(opts.header.map(v => v.split(': ', 2)))
   }
 
   serve(opts)

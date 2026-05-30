@@ -1,6 +1,6 @@
 {
   "name": "swank",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Simple static server with livereload and tunneling options",
   "main": "swank.js",
   "dependencies": {
