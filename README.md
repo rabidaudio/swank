@@ -1,7 +1,7 @@
 swank
 =====
 
-![build-status](https://travis-ci.org/rabidaudio/swank.svg?branch=master)
+![build-status](https://travis-ci.org/rabidaudio/swank.svg?branch=main)
 
 [![NPM](https://nodei.co/npm/swank.png?global=true&&downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/swank/)
 
