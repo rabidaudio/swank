@@ -34,7 +34,7 @@ class Swank {
       this.liveReloadServer = require('tiny-lr')()
     }
 
-    // actualy serve files
+    // actually serve files
     this.app.use(serveStatic(this.dir))
   }
 

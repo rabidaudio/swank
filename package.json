@@ -1,21 +1,20 @@
 {
   "name": "swank",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Simple static server with livereload and tunneling options",
   "main": "swank.js",
   "dependencies": {
-    "chokidar": "^3.4.0",
+    "chokidar": "^4.0.3",
     "colors": "^1.0.3",
     "connect": "^3.7.0",
     "connect-livereload": "^0.6.1",
     "debounce": "^1.0.0",
     "lodash": "^4.17.15",
     "morgan": "^1.10.0",
-    "nopt": "^3.0.1",
-    "open": "^7.4.2",
+    "nopt": "^10.0.0",
+    "open": "^11.0.0",
     "readline-stream": "^1.0.2",
-    "serialize-javascript": ">=3.1.0",
-    "serve-static": "^1.14.1",
+    "serve-static": "^2.2.1",
     "tiny-lr": "^1.1.1"
   },
   "devDependencies": {
@@ -30,7 +29,8 @@
   },
   "scripts": {
     "test": "mocha --exit test/test.js",
-    "lint": "standard"
+    "lint": "standard",
+    "audit": "npm audit --omit dev"
   },
   "author": "charles@rabidaudio.com",
   "license": "MIT",
