@@ -25,6 +25,11 @@ class Swank {
       this.app.use(this.getLogger())
     }
 
+    this.app.use((req, res, next) => {
+      res.setHeaders(this.headers)
+      return next()
+    })
+
     // liveReload injection needs to come before serveStatic
     if (this.watch) {
       this.watchForFileChanges()
@@ -52,6 +57,10 @@ class Swank {
 
   get watch () {
     return this.opts.watch
+  }
+
+  get headers () {
+    return new Map((this.opts.header || []).map(v => v.split(': ', 2)))
   }
 
   get url () {
@@ -207,13 +216,15 @@ function processArgs () {
     open: Boolean,
     ngrok: Boolean,
     watch: Boolean,
-    interval: Number
+    interval: Number,
+    header: [String, Array]
   }
 
   const shortHands = {
     p: '--port',
     d: '--path',
     h: '--help',
+    H: '--header',
     l: '--log',
     o: '--open',
     n: '--ngrok',
@@ -234,7 +245,7 @@ function processArgs () {
   // start by returning usage info if requested
   if (opts.help) {
     console.log(`
-      Usage: swank [[--silent]] [[--open | -o]] [[--ngrok | -n]] [[--watch | -w]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[ [[--path | -d]] root_directory]]
+      Usage: swank [[--silent]] [[--open | -o]] [[--ngrok | -n]] [[--watch | -w]] [[--interval | -i SECONDS]] [[--port | -p PORT]] [[--header | -H 'Key: val' ...]] [[ [[--path | -d]] root_directory]]
 
       --ngrok: pipe your server through [ngrok's](https://www.npmjs.org/package/ngrok) local tunnel
       --watch: a watch+livereload server. Includes "livereload.js" in HTML files, starts the livereload server, and watches your directory, causing a reload when files change
@@ -243,6 +254,7 @@ function processArgs () {
       --silent: disable logging of requests
       --port: specify the local port to use. Defaults to $PORT or 8000
       --path: the path to the root directory of the server. Defaults to the current working directory
+      --header: a static header to include on requests. Can be provided multiple times
     `)
     process.exit(0)
   }

@@ -81,6 +81,25 @@ describe('Swank', () => {
       }
     })
 
+    it('should allow setting headers', async () => {
+      var s = await swank({
+        path: 'test/fixtures',
+        header: [
+          'Access-Control-Allow-Origin: *',
+          "Content-Security-Policy: style-src 'unsafe-inline';"
+        ],
+        log: false
+      })
+
+      try {
+        var res = await getPage('http://localhost:8000')
+        expect(res.headers['access-control-allow-origin']).to.equal('*')
+        expect(res.headers['content-security-policy']).to.equal("style-src 'unsafe-inline';")
+      } finally {
+        await s.close()
+      }
+    })
+
     xit('should allow ngrok tunneling', async () => {
       var s = await swank({ path: 'test/fixtures', ngrok: true, log: false })
       try {
